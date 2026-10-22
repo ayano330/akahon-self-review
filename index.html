@@ -1,0 +1,954 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>赤本 自己分析ツール(生物)試作版</title>
+<style>
+:root {
+  --bg: #f6f8f7;
+  --card: #ffffff;
+  --fg: #1c2a24;
+  --muted: #55645c;
+  --border: #d5ddd8;
+  --primary: #1f6b4a;
+  --primary-fg: #ffffff;
+  --primary-soft: #e6f3ec;
+  --warn-bg: #fff4dc;
+  --warn-fg: #7a4b00;
+  --danger: #b3261e;
+  --radius: 12px;
+}
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--fg);
+  font-family: "Hiragino Sans", "Yu Gothic UI", "Meiryo", system-ui, sans-serif;
+  line-height: 1.7;
+  font-size: 16px;
+}
+main { max-width: 640px; margin: 0 auto; padding: 16px 16px 64px; }
+h1 { font-size: 1.35rem; line-height: 1.4; margin: 0 0 8px; }
+h2 { font-size: 1.1rem; margin: 0 0 8px; }
+h3 { font-size: 1rem; margin: 0 0 4px; }
+p { margin: 0; }
+:focus-visible { outline: 3px solid var(--primary); outline-offset: 2px; }
+h1:focus { outline: none; }
+
+.stack { display: flex; flex-direction: column; gap: 16px; }
+.stack-sm { display: flex; flex-direction: column; gap: 8px; }
+.row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+.row-between { display: flex; gap: 8px; justify-content: space-between; align-items: center; }
+
+.card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 16px;
+}
+.card-accent { border-color: var(--primary); border-width: 2px; }
+.muted { color: var(--muted); font-size: 0.9rem; }
+.badge {
+  display: inline-block;
+  background: var(--warn-bg);
+  color: var(--warn-fg);
+  border-radius: 999px;
+  padding: 2px 12px;
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+.notice {
+  background: var(--primary-soft);
+  border-radius: var(--radius);
+  padding: 12px 16px;
+}
+.notice-warn { background: var(--warn-bg); color: var(--warn-fg); }
+.error { color: var(--danger); font-weight: 700; }
+ul.plain { margin: 0; padding-left: 1.2em; }
+ul.plain li { margin: 2px 0; }
+ol.steps { margin: 0; padding-left: 1.4em; }
+ol.steps li { margin: 4px 0; }
+
+.progress { height: 8px; background: var(--border); border-radius: 999px; overflow: hidden; }
+.progress > span { display: block; height: 100%; background: var(--primary); }
+
+fieldset { border: 0; padding: 0; margin: 0; min-width: 0; }
+legend { font-weight: 700; padding: 0; margin-bottom: 8px; }
+.options { display: flex; flex-wrap: wrap; gap: 8px; }
+.option { position: relative; }
+.option input { position: absolute; opacity: 0; inset: 0; width: 100%; height: 100%; margin: 0; cursor: pointer; }
+.option span {
+  display: block;
+  padding: 10px 14px;
+  min-height: 44px;
+  border: 2px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--card);
+}
+.option:has(input:checked) span { border-color: var(--primary); background: var(--primary-soft); font-weight: 700; }
+.option:has(input:focus-visible) span { outline: 3px solid var(--primary); outline-offset: 2px; }
+.options.col { flex-direction: column; }
+.options.col .option span { width: 100%; }
+
+input[type="number"], input[type="text"], textarea {
+  width: 100%;
+  font: inherit;
+  padding: 10px 12px;
+  border: 2px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--card);
+  color: var(--fg);
+}
+textarea { min-height: 120px; resize: vertical; }
+label.field { display: flex; flex-direction: column; gap: 4px; font-weight: 700; }
+.inline-num { display: flex; align-items: center; gap: 8px; }
+.inline-num input { max-width: 120px; }
+
+.btn {
+  font: inherit;
+  font-weight: 700;
+  min-height: 44px;
+  padding: 8px 20px;
+  border-radius: var(--radius);
+  border: 2px solid var(--primary);
+  background: var(--card);
+  color: var(--primary);
+  cursor: pointer;
+}
+.btn:disabled { opacity: 0.45; cursor: not-allowed; }
+.btn-primary { background: var(--primary); color: var(--primary-fg); }
+.btn-quiet { border-color: var(--border); color: var(--muted); font-weight: 400; }
+.btn-danger { border-color: var(--danger); color: var(--danger); }
+
+.bar-row { display: grid; grid-template-columns: 8.5em 1fr 2.5em; gap: 8px; align-items: center; font-size: 0.9rem; }
+.bar { height: 12px; background: var(--border); border-radius: 999px; overflow: hidden; }
+.bar > span { display: block; height: 100%; background: var(--primary); }
+.bar-row.top .bar > span { background: var(--primary); }
+.bar-row:not(.top) .bar > span { background: #8fb7a2; }
+.score-big { font-size: 2rem; font-weight: 700; line-height: 1.2; }
+.kv { display: grid; grid-template-columns: auto 1fr; gap: 4px 12px; font-size: 0.95rem; }
+.kv dt { color: var(--muted); }
+.kv dd { margin: 0; }
+.goal { background: var(--primary-soft); border-radius: 8px; padding: 8px 12px; font-size: 0.95rem; }
+.chip { display: inline-block; background: var(--primary-soft); border-radius: 999px; padding: 2px 12px; font-size: 0.9rem; }
+</style>
+</head>
+<body>
+<main id="app" aria-live="polite"></main>
+<noscript>このツールの利用にはJavaScriptが必要です。</noscript>
+
+<script>
+(() => {
+'use strict';
+
+/* =========================================================
+ * 1. データ(先生が赤ペンを入れる部分はここ)
+ * ========================================================= */
+const STORAGE_KEY = 'akahon-self-review:v1';
+
+const FIELDS = [
+  '細胞', '代謝(呼吸・光合成)', '遺伝情報(DNA・タンパク質合成)', '遺伝(メンデル・連鎖)',
+  '発生', '動物の反応(神経・筋)', '体内環境(恒常性・免疫)', '植物の反応',
+  '生態・個体群', '進化・系統'
+];
+
+const ROUNDS = [
+  { id: '1', label: '1回目' },
+  { id: '2', label: '2回目' },
+  { id: '3', label: '3回目以降' }
+];
+
+const TIMES = [
+  { id: 'ok', label: '余裕で、見直しまでできた' },
+  { id: 'tight', label: 'ギリギリ終わった' },
+  { id: 'unfinished', label: '時間が足りず、手がつかなかった大問があった' }
+];
+
+const STUDY = [
+  { id: '30', label: '30分くらい' },
+  { id: '60', label: '1時間くらい' },
+  { id: '120', label: '2時間以上' }
+];
+
+const LOSS = [
+  { id: 'large', label: '大きく落とした' },
+  { id: 'mid', label: 'そこそこ' },
+  { id: 'small', label: '少しだけ' }
+];
+
+const LOSS_WEIGHT = { large: 3, mid: 2, small: 1 };
+const TIME_WEIGHT = { ok: 0, tight: 1, unfinished: 3 };
+const UNLEARNED_WEIGHT = 3;
+
+/* タグ。同点のときは配列の順(前ほど優先)で決める */
+const TAGS = [
+  { id: 'unlearned', label: '未習・未対策' },
+  { id: 'understanding', label: '理解不足' },
+  { id: 'knowledge', label: '知識不足' },
+  { id: 'reasoning', label: '考察(実験・グラフ)' },
+  { id: 'writing', label: '論述' },
+  { id: 'calc', label: '計算・処理' },
+  { id: 'careless', label: 'ケアレス' },
+  { id: 'timeshort', label: '時間不足' }
+];
+
+/* 形式ごとに、原因の選択肢を絞る(ここが「分岐」) */
+const FORMS = [
+  {
+    id: 'term', label: '用語・知識',
+    reasons: [
+      { id: 'not_learned', label: '習っていない', tag: 'unlearned' },
+      { id: 'forgot', label: '覚えていなかった・うろ覚えだった', tag: 'knowledge' },
+      { id: 'confused', label: '似た用語と混同した', tag: 'knowledge' },
+      { id: 'no_mech', label: '用語は言えるが、仕組みがわかっていなかった', tag: 'understanding' }
+    ]
+  },
+  {
+    id: 'reasoning', label: '考察(実験・グラフ)',
+    reasons: [
+      { id: 'cond', label: '実験の条件の違いが整理できなかった', tag: 'reasoning' },
+      { id: 'graph', label: 'グラフの読み取りで手が止まった', tag: 'reasoning' },
+      { id: 'noknow', label: '前提となる知識がなくて考えられなかった', tag: 'knowledge' }
+    ]
+  },
+  {
+    id: 'writing', label: '論述',
+    reasons: [
+      { id: 'what', label: '何を書けばいいかわからなかった', tag: 'understanding' },
+      { id: 'missing', label: '書いたが、要素(キーワード)が足りなかった', tag: 'writing' },
+      { id: 'length', label: '字数に収められなかった', tag: 'writing' },
+      { id: 'notime', label: '時間がなくて書けなかった', tag: 'timeshort' }
+    ]
+  },
+  {
+    id: 'calc', label: '計算・遺伝',
+    reasons: [
+      { id: 'how', label: '解き方がわからなかった', tag: 'understanding' },
+      { id: 'slip', label: '立式はできたが、計算や処理でミスした', tag: 'calc' }
+    ]
+  },
+  {
+    id: 'choice', label: '選択肢(正誤)',
+    reasons: [
+      { id: 'noevidence', label: '根拠がわからず選べなかった', tag: 'knowledge' },
+      { id: 'two', label: '2つで迷って外した', tag: 'knowledge' },
+      { id: 'misread', label: '問題文の条件を読み違えた(「誤っているもの」など)', tag: 'careless' }
+    ]
+  }
+];
+
+/* アクションの型: やること・やり方(3ステップ以内)・目安・終わりの目印 */
+const ACTIONS = {
+  unlearned: {
+    title: '未習分野を1つ選んで、基礎を一周する',
+    short: '未習分野を1つ選んで、教科書と基礎問題を一周する',
+    why: '習っていない範囲は、赤本を解いても点になりにくいからです。先に基礎を固めるほうが、次の赤本で伸びます。',
+    steps: ['教科書の太字の用語を読む', '基礎問題集の同じ分野を解く', '間違えた問題にチェックをつける'],
+    amount: '1分野を数日',
+    goal: '基礎問題の正答率が8割になる'
+  },
+  understanding: {
+    title: '仕組みを、自分の言葉で説明する',
+    short: '教科書を閉じて、仕組みを3行で説明してみる',
+    why: '用語は言えても仕組みがわからないと、少し形が変わった問題で手が止まります。「なぜそうなるか」を言えるようにするのが近道です。',
+    steps: ['教科書を閉じる', 'その仕組みを3行で書く', '書けなければ読み直して、矢印(A→B→C)で整理する'],
+    amount: '1テーマ15分',
+    goal: '3行で説明できる'
+  },
+  knowledge: {
+    title: '間違えた用語を覚え直す',
+    short: '間違えた用語を10個書き出して、毎日10分見直す',
+    why: '知識がないと、考える以前に手が止まります。ここは地道に覚える分だけ点になります。',
+    steps: ['間違えた用語を10個書き出す', '答えを隠して、言えるか確かめる', '3日後にもう一度テストする'],
+    amount: '毎日10分',
+    goal: '10個すべて言える'
+  },
+  reasoning: {
+    title: '実験問題を「条件の表」にする',
+    short: '実験問題で、比べる2つの違いを1つだけ書き出す',
+    why: '考察問題は、「何と何を比べているか」が整理できると一気に解きやすくなります。',
+    steps: ['比べる2つの実験を探す', '違う点を1つだけ書く', '結果の違いが何を意味するか、1文で書く'],
+    amount: '1日1題',
+    goal: '条件の違いを1分で言える'
+  },
+  writing: {
+    title: '模範解答と自分の答案を比べる',
+    short: '模範解答のキーワードに○をつけて、抜けを数える',
+    why: '論述は、必要なキーワードを落とさないことが得点の中心です。抜けのパターンがわかると直せます。',
+    steps: ['模範解答のキーワードに○をつける', '自分の答案で、抜けているものを数える', '字数内で書き直す'],
+    amount: '1日1問',
+    goal: '抜けが0〜1個になる'
+  },
+  calc: {
+    title: '同じ問題を、途中式を省かず解き直す',
+    short: '途中式を省かずに、同じ型の問題を解き直す',
+    why: '解き方はわかっているので、処理の精度を上げれば取れる点です。急ぐほどミスが増えます。',
+    steps: ['解き方をもう一度確認する', '途中式をすべて書いて解く', 'ミスした箇所に印をつける'],
+    amount: '1日2問',
+    goal: '同じ型を連続で正解できる'
+  },
+  careless: {
+    title: '問題文の条件に線を引く習慣をつける',
+    short: '「誤っているもの」「すべて」「単位」に線を引く',
+    why: '読み違いは、知識があっても失点します。習慣で防げる、いちばんもったいない失点です。',
+    steps: ['「誤っているもの」「すべて」「単位」に線を引く', '見直しチェック3項目(単位・条件・選択肢の数)を確認する', '次の演習で実行する'],
+    amount: '次の1回から',
+    goal: '線を引き忘れない'
+  },
+  timeshort: {
+    title: '大問ごとの目標時間を決めて解く',
+    short: '大問ごとの目安時間を決めて、タイマーで解く',
+    why: '時間が足りないと、解けるはずの問題にも手がつかなくなります。配分を決めて練習するだけで変わります。',
+    steps: ['大問ごとの目安時間を書き込む', 'タイマーを使って解く', '「3分で手が止まったら飛ばす」ルールを決める'],
+    amount: '次の1回',
+    goal: '全部の大問に手をつけて終わる'
+  },
+  stable: {
+    title: '同じ条件で、もう一度再現できるか確かめる',
+    short: '同じ時間・条件で別の年度を解いて、再現できるか確かめる',
+    why: '今回の入力からは、はっきりした課題は見つかりませんでした。調子が良かっただけか、実力かを確かめましょう。',
+    steps: ['別の年度を、同じ制限時間で解く', '間違えた設問があれば、このツールで原因を選ぶ', '2回続けて同じ結果なら、実力と考える'],
+    amount: '次の1回',
+    goal: '2回連続で目標点に届く'
+  }
+};
+
+/* =========================================================
+ * 2. 判断ロジック(純粋関数。画面とは独立)
+ * ========================================================= */
+const TAG_IDS = TAGS.map((t) => t.id);
+const tagLabel = (id) => (TAGS.find((t) => t.id === id) || { label: id }).label;
+const findForm = (id) => FORMS.find((f) => f.id === id);
+const findReason = (formId, reasonId) => {
+  const f = findForm(formId);
+  return f ? f.reasons.find((r) => r.id === reasonId) : undefined;
+};
+
+function calcScores(a) {
+  const scores = {};
+  TAG_IDS.forEach((t) => { scores[t] = 0; });
+  a.misses.forEach((m) => {
+    const r = findReason(m.form, m.reason);
+    if (r) scores[r.tag] += LOSS_WEIGHT[m.loss] || 0;
+  });
+  scores.timeshort += TIME_WEIGHT[a.time] || 0;
+  if (a.unlearned.length > 0) scores.unlearned += UNLEARNED_WEIGHT;
+  return scores;
+}
+
+function decide(a) {
+  const scores = calcScores(a);
+  const ranked = TAG_IDS
+    .filter((t) => scores[t] > 0)
+    .sort((x, y) => (scores[y] - scores[x]) || (TAG_IDS.indexOf(x) - TAG_IDS.indexOf(y)));
+  // 未習が見つかったら、他より先に必ず最優先にする
+  if (scores.unlearned > 0) {
+    ranked.splice(ranked.indexOf('unlearned'), 1);
+    ranked.unshift('unlearned');
+  }
+  return {
+    scores,
+    ranked,
+    primary: ranked[0] || 'stable',
+    secondary: ranked[1] || null
+  };
+}
+
+const pct = (score, full) => Math.round((Number(score) / Number(full)) * 100);
+
+/* =========================================================
+ * 3. 保存(生徒が自分で押したときだけ。この端末のブラウザ内)
+ * ========================================================= */
+function loadHistory() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return [];
+    const arr = JSON.parse(raw);
+    return Array.isArray(arr) ? arr : [];
+  } catch (e) {
+    return [];
+  }
+}
+function saveHistory(arr) {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(arr));
+    return true;
+  } catch (e) {
+    return false;
+  }
+}
+function clearHistory() {
+  try { localStorage.removeItem(STORAGE_KEY); } catch (e) { /* noop */ }
+}
+
+/* =========================================================
+ * 4. AIに貼るプロンプト(診断結果を「前提」として渡す)
+ * ========================================================= */
+function buildPrompt(a, d, includeMemo) {
+  const lines = [];
+  lines.push('あなたは大学受験の生物を教える先生役です。');
+  lines.push('以下は、高校3年生の受験生が赤本(過去問)を解いたあとの自己分析の結果です。');
+  lines.push('');
+  lines.push('【診断結果(この優先順位は変えないでください)】');
+  const roundLabel = (ROUNDS.find((r) => r.id === a.round) || {}).label || '';
+  lines.push(`- 赤本: ${roundLabel}、得点 ${a.score}/${a.full}(${pct(a.score, a.full)}%)`);
+  lines.push(`- 最優先の課題: ${d.primary === 'stable' ? '(はっきりした課題なし)' : tagLabel(d.primary)}`);
+  if (d.secondary) lines.push(`- 次点の課題: ${tagLabel(d.secondary)}`);
+  lines.push(`- 未習・自信のない分野: ${a.unlearned.length ? a.unlearned.join('、') : 'なし'}`);
+  lines.push(`- 時間配分: ${(TIMES.find((t) => t.id === a.time) || {}).label || ''}`);
+  if (a.misses.length) {
+    lines.push('- 失点した設問:');
+    a.misses.forEach((m, i) => {
+      const f = findForm(m.form);
+      const r = findReason(m.form, m.reason);
+      const l = LOSS.find((x) => x.id === m.loss);
+      lines.push(`  ${i + 1}. 形式: ${f ? f.label : ''} / 原因: ${r ? r.label : ''} / 失点: ${l ? l.label : ''}`);
+    });
+  }
+  lines.push(`- 1日に生物に使える時間: ${(STUDY.find((s) => s.id === a.study) || {}).label || ''}`);
+  if (includeMemo && a.memo.trim()) {
+    lines.push(`- 生徒のメモ: ${a.memo.trim()}`);
+  }
+  lines.push('');
+  lines.push('【お願い】');
+  lines.push('- 上の診断結果の優先順位を前提に、次の赤本までにやることを一緒に考えてください。');
+  lines.push('- 難しい言葉は避けて、短く、やさしく答えてください。一度に出す提案は1つまでにしてください。');
+  lines.push('- 最初に、私の理解度を確かめる質問を1〜2個してください。');
+  lines.push('- 個人情報(名前・学校名など)は聞かないでください。');
+  lines.push('- 不安や悩みの相談は、学校や塾の先生など身近な大人にも話すようすすめてください。');
+  return lines.join('\n');
+}
+
+/* =========================================================
+ * 5. 状態
+ * ========================================================= */
+const STEPS = ['basic', 'time', 'unlearned', 'misses', 'study', 'memo'];
+
+const newAnswers = () => ({
+  round: '', score: '', full: '', time: '', unlearned: [],
+  misses: [], study: '', memo: ''
+});
+const newMiss = () => ({ label: '', form: '', reason: '', loss: '' });
+
+const state = {
+  step: 'intro',
+  a: newAnswers(),
+  error: '',
+  result: null,
+  saved: false,
+  showAi: false,
+  includeMemo: false
+};
+
+/* =========================================================
+ * 6. 画面
+ * ========================================================= */
+const app = document.getElementById('app');
+
+const esc = (s) => String(s).replace(/[&<>"']/g, (c) => (
+  { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]
+));
+
+function radios(name, options, value, attrs) {
+  return '<div class="options">' + options.map((o) => (
+    `<label class="option"><input type="radio" name="${name}" value="${esc(o.id)}" ${attrs} ${value === o.id ? 'checked' : ''}><span>${esc(o.label)}</span></label>`
+  )).join('') + '</div>';
+}
+
+function progress(stepId) {
+  const i = STEPS.indexOf(stepId);
+  return `
+    <div class="stack-sm">
+      <div class="row-between"><span class="muted">${i + 1} / ${STEPS.length}</span><span class="muted">約5分</span></div>
+      <div class="progress" role="progressbar" aria-valuemin="1" aria-valuemax="${STEPS.length}" aria-valuenow="${i + 1}"><span style="width:${((i + 1) / STEPS.length) * 100}%"></span></div>
+    </div>`;
+}
+
+function nav(stepId, nextLabel) {
+  return `
+    <div class="row-between">
+      <button class="btn btn-quiet" data-action="back" ${stepId === STEPS[0] ? 'data-to-intro="1"' : ''}>もどる</button>
+      <button class="btn btn-primary" data-action="next">${nextLabel || '次へ'}</button>
+    </div>`;
+}
+
+function errorHtml() {
+  return state.error ? `<p class="error" role="alert">${esc(state.error)}</p>` : '';
+}
+
+function renderIntro() {
+  const history = loadHistory();
+  const last = history[history.length - 1];
+  return `
+    <div class="stack">
+      <div><span class="badge">試作版(先生の確認用)</span></div>
+      <h1 tabindex="-1">赤本 自己分析ツール(生物)</h1>
+      <p>赤本を解いたあとに、いくつか選ぶだけ。<strong>次にやることが1つ決まります。</strong>5分で終わります。</p>
+      <div class="card stack-sm">
+        <h2>安心して使えるように</h2>
+        <ul class="plain">
+          <li>名前や学校名は、聞きません。</li>
+          <li>入力した内容は、この端末のブラウザの中だけにあります。外には送られません。</li>
+          <li>結果の保存は、自分でボタンを押したときだけです。</li>
+          <li>AIは、使わなくても結果が出ます。使いたい人だけの、おまけです。</li>
+        </ul>
+      </div>
+      ${last ? `
+      <div class="notice stack-sm">
+        <p>この端末に、保存された結果が <strong>${history.length}件</strong> あります(最新: ${esc(last.date)})。次回の結果と比べられます。</p>
+        <div><button class="btn btn-danger" data-action="clear">保存した結果を消す</button></div>
+      </div>` : ''}
+      <div><button class="btn btn-primary" data-action="start">はじめる</button></div>
+    </div>`;
+}
+
+function renderBasic() {
+  const a = state.a;
+  return `
+    <div class="stack">
+      ${progress('basic')}
+      <h1 tabindex="-1">今回の赤本について</h1>
+      <fieldset>
+        <legend>赤本は何回目ですか?</legend>
+        ${radios('round', ROUNDS, a.round, 'data-bind="round"')}
+      </fieldset>
+      <fieldset>
+        <legend>得点と満点を入力してください</legend>
+        <div class="inline-num">
+          <input type="number" inputmode="decimal" min="0" step="any" aria-label="得点" placeholder="得点" data-text="score" value="${esc(a.score)}">
+          <span>/</span>
+          <input type="number" inputmode="decimal" min="1" step="any" aria-label="満点" placeholder="満点 (例: 100)" data-text="full" value="${esc(a.full)}">
+          <span>点</span>
+        </div>
+      </fieldset>
+      ${errorHtml()}
+      ${nav('basic')}
+    </div>`;
+}
+
+function renderTime() {
+  const a = state.a;
+  return `
+    <div class="stack">
+      ${progress('time')}
+      <h1 tabindex="-1">時間はどうでしたか?</h1>
+      <fieldset>
+        <legend>制限時間の中で、解き終わりましたか?</legend>
+        <div class="options col">${TIMES.map((o) => `<label class="option"><input type="radio" name="time" value="${o.id}" data-bind="time" ${a.time === o.id ? 'checked' : ''}><span>${esc(o.label)}</span></label>`).join('')}</div>
+      </fieldset>
+      ${errorHtml()}
+      ${nav('time')}
+    </div>`;
+}
+
+function renderUnlearned() {
+  const a = state.a;
+  return `
+    <div class="stack">
+      ${progress('unlearned')}
+      <h1 tabindex="-1">まだの分野はありますか?</h1>
+      <fieldset>
+        <legend>まだ習っていない、または自信のない分野を選んでください(何個でも。なければ何も選ばずに次へ)</legend>
+        <div class="options">${FIELDS.map((f) => `<label class="option"><input type="checkbox" value="${esc(f)}" data-multi="unlearned" ${a.unlearned.includes(f) ? 'checked' : ''}><span>${esc(f)}</span></label>`).join('')}</div>
+      </fieldset>
+      ${nav('unlearned')}
+    </div>`;
+}
+
+function renderMiss(m, i) {
+  const form = findForm(m.form);
+  return `
+    <div class="card stack">
+      <div class="row-between">
+        <h2>点を落とした設問 ${i + 1}</h2>
+        <button class="btn btn-quiet" data-action="remove-miss" data-index="${i}">この設問を消す</button>
+      </div>
+      <label class="field">
+        <span>どの設問か、メモ(任意)</span>
+        <input type="text" maxlength="30" placeholder="例: 大問2 問3" data-miss="${i}" data-key="label" data-text-miss="1" value="${esc(m.label)}">
+      </label>
+      <fieldset>
+        <legend>どんな問題でしたか?</legend>
+        <div class="options">${FORMS.map((f) => `<label class="option"><input type="radio" name="miss${i}-form" value="${f.id}" data-miss="${i}" data-key="form" ${m.form === f.id ? 'checked' : ''}><span>${esc(f.label)}</span></label>`).join('')}</div>
+      </fieldset>
+      ${form ? `
+      <fieldset>
+        <legend>いちばん近い理由は?</legend>
+        <div class="options col">${form.reasons.map((r) => `<label class="option"><input type="radio" name="miss${i}-reason" value="${r.id}" data-miss="${i}" data-key="reason" ${m.reason === r.id ? 'checked' : ''}><span>${esc(r.label)}</span></label>`).join('')}</div>
+      </fieldset>` : ''}
+      <fieldset>
+        <legend>どのくらい落としましたか?</legend>
+        <div class="options">${LOSS.map((l) => `<label class="option"><input type="radio" name="miss${i}-loss" value="${l.id}" data-miss="${i}" data-key="loss" ${m.loss === l.id ? 'checked' : ''}><span>${esc(l.label)}</span></label>`).join('')}</div>
+      </fieldset>
+    </div>`;
+}
+
+function renderMisses() {
+  const a = state.a;
+  return `
+    <div class="stack">
+      ${progress('misses')}
+      <h1 tabindex="-1">点を落とした設問</h1>
+      <p>大きく落とした順に、最大3つまで選んでください。全部書かなくて大丈夫です。</p>
+      ${a.misses.length === 0 ? '<p class="notice">失点した設問がない場合は、このまま次へ進めます。</p>' : ''}
+      ${a.misses.map(renderMiss).join('')}
+      <div><button class="btn" data-action="add-miss" ${a.misses.length >= 3 ? 'disabled' : ''}>設問を追加する(${a.misses.length}/3)</button></div>
+      ${errorHtml()}
+      ${nav('misses')}
+    </div>`;
+}
+
+function renderStudy() {
+  const a = state.a;
+  return `
+    <div class="stack">
+      ${progress('study')}
+      <h1 tabindex="-1">使える時間</h1>
+      <fieldset>
+        <legend>1日に、生物に使える時間はどのくらいですか?</legend>
+        ${radios('study', STUDY, a.study, 'data-bind="study"')}
+      </fieldset>
+      <p class="muted">時間に合わせて、提案の量を調整します。</p>
+      ${errorHtml()}
+      ${nav('study')}
+    </div>`;
+}
+
+function renderMemo() {
+  const a = state.a;
+  return `
+    <div class="stack">
+      ${progress('memo')}
+      <h1 tabindex="-1">ひとこと(任意)</h1>
+      <label class="field">
+        <span>いちばん悔しかった問題と、その理由があれば書いてください。書かなくても結果は出ます。</span>
+        <textarea maxlength="400" data-text="memo" placeholder="例: 光合成の実験問題で、グラフの意味がわからなくて手が止まった">${esc(a.memo)}</textarea>
+      </label>
+      <p class="muted">ここに書いた内容は、この画面にだけ表示されます。名前や学校名は書かないでください。</p>
+      ${nav('memo', '結果を見る')}
+    </div>`;
+}
+
+function actionHtml(tag, a, opts) {
+  const act = ACTIONS[tag];
+  const steps = opts.onlyFirst ? act.steps.slice(0, 1) : act.steps;
+  const extra = tag === 'unlearned' && a.unlearned.length
+    ? `<div class="stack-sm"><p class="muted">選んだ分野(どれから始めるか迷ったら、今回の赤本でよく出ていた分野から):</p><div class="row">${a.unlearned.map((f) => `<span class="chip">${esc(f)}</span>`).join('')}</div></div>`
+    : '';
+  return `
+    <div class="stack">
+      <div>
+        <p class="muted">最優先は「${esc(tag === 'stable' ? '課題なし' : tagLabel(tag))}」</p>
+        <h2>${esc(act.title)}</h2>
+      </div>
+      <p>${esc(act.why)}</p>
+      ${extra}
+      <ol class="steps">${steps.map((s) => `<li>${esc(s)}</li>`).join('')}</ol>
+      ${opts.onlyFirst ? '<p class="notice">時間が少ないので、まず最初のひとつだけでOKです。慣れたら続きもやってみましょう。</p>' : ''}
+      <dl class="kv">
+        <dt>目安</dt><dd>${esc(act.amount)}</dd>
+      </dl>
+      <p class="goal"><strong>終わりの目印:</strong> ${esc(act.goal)}</p>
+    </div>`;
+}
+
+function compareHtml(prev, d, a) {
+  if (!prev) return '';
+  const pr = pct(prev.score, prev.full);
+  const cr = pct(a.score, a.full);
+  const diff = cr - pr;
+  const diffText = diff > 0 ? `+${diff}` : String(diff);
+  const same = prev.primary === d.primary;
+  const prevLabel = prev.primary === 'stable' ? '課題なし' : tagLabel(prev.primary);
+  return `
+    <section class="card stack-sm" aria-labelledby="cmp">
+      <h2 id="cmp">前回との比べ方</h2>
+      <p>得点率: 前回 ${pr}%(${esc(prev.date)})→ 今回 ${cr}%(${diffText}ポイント)</p>
+      ${same
+        ? `<p>前回と同じ「${esc(prevLabel)}」が、今回も最優先です。前回のアクションは続けられましたか?続かなかったなら、時間を半分にして「ステップの1つ目だけ」からやり直せば十分です。</p>`
+        : `<p>前回の最優先だった「${esc(prevLabel)}」は、今回は最優先ではなくなりました。課題が入れ替わるのは、前に進んでいる証拠です。</p>`}
+    </section>`;
+}
+
+function renderResult() {
+  const a = state.a;
+  const { d, prev } = state.result;
+  const cr = pct(a.score, a.full);
+  const maxScore = Math.max(1, ...d.ranked.map((t) => d.scores[t]));
+  const first = a.round === '1';
+  const lead = first
+    ? '1回目は、点数が低くて当たり前です。今日わかったことが、いちばんの収穫です。'
+    : '赤本を重ねるほど、点数よりも「なぜ落としたか」を見る力が大事になります。';
+  const onlyFirst = a.study === '30';
+  const showSecondary = d.secondary && a.study !== '30';
+  const prompt = buildPrompt(a, d, state.includeMemo);
+  const hasMemo = a.memo.trim().length > 0;
+  return `
+    <div class="stack">
+      <h1 tabindex="-1">結果</h1>
+      <p class="notice">${esc(lead)}</p>
+
+      <section class="card stack" aria-labelledby="found">
+        <h2 id="found">今回わかったこと</h2>
+        <p><span class="score-big">${cr}%</span> <span class="muted">(${esc(a.score)} / ${esc(a.full)}点)</span></p>
+        ${d.ranked.length ? `
+        <div class="stack-sm" role="list" aria-label="失点の内訳">
+          ${d.ranked.map((t, i) => `
+            <div class="bar-row ${i === 0 ? 'top' : ''}" role="listitem">
+              <span>${esc(tagLabel(t))}</span>
+              <div class="bar"><span style="width:${Math.round((d.scores[t] / maxScore) * 100)}%"></span></div>
+              <span>${d.scores[t]}</span>
+            </div>`).join('')}
+        </div>
+        <p class="muted">数字が大きいほど、点を落とした影響が大きかった課題です。</p>` : '<p>はっきりした課題は見つかりませんでした。</p>'}
+      </section>
+
+      <section class="card card-accent" aria-labelledby="top">
+        <h2 id="top" style="margin-bottom:12px">次の赤本までにやること</h2>
+        ${actionHtml(d.primary, a, { onlyFirst })}
+      </section>
+
+      ${showSecondary ? `
+      <section class="card stack-sm" aria-labelledby="second">
+        <h2 id="second">余力があれば</h2>
+        <p><strong>${esc(tagLabel(d.secondary))}</strong>: ${esc(ACTIONS[d.secondary].short)}</p>
+      </section>` : ''}
+
+      ${compareHtml(prev, d, a)}
+
+      <section class="card stack-sm" aria-labelledby="save">
+        <h2 id="save">この結果を残す</h2>
+        <p class="muted">保存すると、次回の赤本のあとに、今回と比べられます。保存先は、この端末のブラウザの中だけです。</p>
+        <div class="row">
+          <button class="btn btn-primary" data-action="save" ${state.saved ? 'disabled' : ''}>${state.saved ? '保存しました' : 'この端末に保存する'}</button>
+          <button class="btn btn-danger" data-action="clear">保存した結果を全部消す</button>
+        </div>
+        <p id="save-status" class="muted" role="status"></p>
+      </section>
+
+      <section class="card stack-sm" aria-labelledby="ai">
+        <h2 id="ai">AIに相談してみる(任意)</h2>
+        <p class="muted">ChatGPTやGeminiなどのAIを、すでに使っている人向けです。使わなくても、ここまでの結果で十分です。</p>
+        <div><button class="btn" data-action="toggle-ai" aria-expanded="${state.showAi}">${state.showAi ? '閉じる' : 'AIに渡す文章を見る'}</button></div>
+        ${state.showAi ? `
+        <div class="notice notice-warn stack-sm">
+          <p><strong>使う前に確認してください</strong></p>
+          <ul class="plain">
+            <li>このツールから、AIには何も送られません。下の文章を、自分でコピーして貼ります。</li>
+            <li>AIのアカウントがある人だけ。年齢や保護者の了解は、各サービスのルールに従ってください。</li>
+            <li>塾がすすめているものではありません。名前や学校名は、貼らないでください。</li>
+            <li>AIの答えは、間違うことがあります。迷ったら先生に聞いてください。</li>
+          </ul>
+        </div>
+        ${hasMemo ? `<label class="row"><input type="checkbox" id="include-memo" ${state.includeMemo ? 'checked' : ''}> <span>「ひとこと」の内容も、AIに渡す文章に入れる</span></label>` : ''}
+        <label class="field">
+          <span>AIに渡す文章(中身を読んでから使ってください)</span>
+          <textarea id="prompt-text" readonly style="min-height:260px">${esc(prompt)}</textarea>
+        </label>
+        <div class="row">
+          <button class="btn btn-primary" data-action="copy">コピーする</button>
+          <span id="copy-status" class="muted" role="status"></span>
+        </div>` : ''}
+      </section>
+
+      <p class="muted">この提案は目安です。迷ったときは、先生に相談してください。</p>
+      <div><button class="btn btn-quiet" data-action="restart">もう一度、最初からやる</button></div>
+    </div>`;
+}
+
+const VIEWS = {
+  intro: renderIntro,
+  basic: renderBasic,
+  time: renderTime,
+  unlearned: renderUnlearned,
+  misses: renderMisses,
+  study: renderStudy,
+  memo: renderMemo,
+  result: renderResult
+};
+
+function render(opts) {
+  app.innerHTML = VIEWS[state.step]();
+  if (opts && opts.focusSelector) {
+    const el = app.querySelector(opts.focusSelector);
+    if (el) el.focus();
+  } else if (opts && opts.focusTop) {
+    const h = app.querySelector('h1');
+    if (h) h.focus();
+    window.scrollTo(0, 0);
+  }
+}
+
+function goto(step) {
+  state.step = step;
+  state.error = '';
+  render({ focusTop: true });
+}
+
+/* =========================================================
+ * 7. 入力チェック
+ * ========================================================= */
+function validate(step) {
+  const a = state.a;
+  if (step === 'basic') {
+    if (!a.round) return '何回目かを選んでください。';
+    const s = Number(a.score);
+    const f = Number(a.full);
+    if (a.score === '' || a.full === '') return '得点と満点を入力してください。';
+    if (!(f > 0)) return '満点は、1以上の数字を入力してください。';
+    if (!(s >= 0) || s > f) return '得点は、0以上で満点以下の数字を入力してください。';
+  }
+  if (step === 'time' && !a.time) return '当てはまるものを選んでください。';
+  if (step === 'misses') {
+    for (let i = 0; i < a.misses.length; i++) {
+      const m = a.misses[i];
+      if (!m.form) return `設問${i + 1}: どんな問題だったか選んでください。`;
+      if (!m.reason) return `設問${i + 1}: 理由を選んでください。`;
+      if (!m.loss) return `設問${i + 1}: どのくらい落としたか選んでください。`;
+    }
+  }
+  if (step === 'study' && !a.study) return '使える時間を選んでください。';
+  return '';
+}
+
+/* =========================================================
+ * 8. イベント
+ * ========================================================= */
+async function copyText(text) {
+  try {
+    await navigator.clipboard.writeText(text);
+    return true;
+  } catch (e) {
+    const ta = document.getElementById('prompt-text');
+    if (!ta) return false;
+    ta.focus();
+    ta.select();
+    try { return document.execCommand('copy'); } catch (e2) { return false; }
+  }
+}
+
+app.addEventListener('click', async (e) => {
+  const btn = e.target.closest('[data-action]');
+  if (!btn || btn.disabled) return;
+  const act = btn.dataset.action;
+
+  if (act === 'start') {
+    state.a = newAnswers();
+    state.a.misses.push(newMiss());
+    state.saved = false;
+    state.showAi = false;
+    state.includeMemo = false;
+    goto(STEPS[0]);
+  } else if (act === 'back') {
+    const i = STEPS.indexOf(state.step);
+    goto(i <= 0 ? 'intro' : STEPS[i - 1]);
+  } else if (act === 'next') {
+    const err = validate(state.step);
+    if (err) {
+      state.error = err;
+      render();
+      const el = app.querySelector('.error');
+      if (el) el.scrollIntoView({ block: 'center' });
+      return;
+    }
+    const i = STEPS.indexOf(state.step);
+    if (i === STEPS.length - 1) {
+      const history = loadHistory();
+      state.result = { d: decide(state.a), prev: history[history.length - 1] || null };
+      state.saved = false;
+      goto('result');
+    } else {
+      goto(STEPS[i + 1]);
+    }
+  } else if (act === 'add-miss') {
+    if (state.a.misses.length < 3) {
+      state.a.misses.push(newMiss());
+      state.error = '';
+      render({ focusSelector: `[data-miss="${state.a.misses.length - 1}"]` });
+    }
+  } else if (act === 'remove-miss') {
+    state.a.misses.splice(Number(btn.dataset.index), 1);
+    state.error = '';
+    render();
+  } else if (act === 'save') {
+    const a = state.a;
+    const d = state.result.d;
+    const history = loadHistory();
+    history.push({
+      date: new Date().toLocaleDateString('ja-JP'),
+      round: a.round,
+      score: Number(a.score),
+      full: Number(a.full),
+      primary: d.primary,
+      secondary: d.secondary,
+      scores: d.scores
+    });
+    const ok = saveHistory(history);
+    state.saved = ok;
+    render();
+    const st = document.getElementById('save-status');
+    if (st) st.textContent = ok ? 'この端末に保存しました。' : '保存できませんでした(ブラウザの設定で保存が禁止されているかもしれません)。';
+  } else if (act === 'clear') {
+    if (window.confirm('この端末に保存した結果を、全部消します。よろしいですか?')) {
+      clearHistory();
+      state.saved = false;
+      if (state.step === 'result') state.result = { d: state.result.d, prev: null };
+      render();
+    }
+  } else if (act === 'toggle-ai') {
+    state.showAi = !state.showAi;
+    render();
+  } else if (act === 'copy') {
+    const text = document.getElementById('prompt-text').value;
+    const ok = await copyText(text);
+    const st = document.getElementById('copy-status');
+    if (st) st.textContent = ok ? 'コピーしました。AIの入力欄に貼ってください。' : 'コピーできませんでした。文章を選んで、手動でコピーしてください。';
+  } else if (act === 'restart') {
+    state.a = newAnswers();
+    goto('intro');
+  }
+});
+
+app.addEventListener('change', (e) => {
+  const t = e.target;
+  if (t.matches('[data-bind]')) {
+    state.a[t.dataset.bind] = t.value;
+    state.error = '';
+  } else if (t.matches('[data-multi]')) {
+    const key = t.dataset.multi;
+    const set = new Set(state.a[key]);
+    if (t.checked) set.add(t.value); else set.delete(t.value);
+    state.a[key] = FIELDS.filter((f) => set.has(f));
+  } else if (t.matches('[data-miss]:not([data-text-miss])')) {
+    const m = state.a.misses[Number(t.dataset.miss)];
+    const key = t.dataset.key;
+    m[key] = t.value;
+    state.error = '';
+    if (key === 'form') {
+      m.reason = '';
+      render({ focusSelector: `input[name="${t.name}"][value="${t.value}"]` });
+    }
+  } else if (t.id === 'include-memo') {
+    state.includeMemo = t.checked;
+    const ta = document.getElementById('prompt-text');
+    if (ta) ta.value = buildPrompt(state.a, state.result.d, state.includeMemo);
+  }
+});
+
+app.addEventListener('input', (e) => {
+  const t = e.target;
+  if (t.matches('[data-text]')) {
+    state.a[t.dataset.text] = t.value;
+  } else if (t.matches('[data-text-miss]')) {
+    state.a.misses[Number(t.dataset.miss)][t.dataset.key] = t.value;
+  }
+});
+
+render();
+})();
+</script>
+</body>
+</html>

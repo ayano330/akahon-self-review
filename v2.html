@@ -1,0 +1,1298 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>赤本 自己分析ツール(生物)試作版 v2</title>
+<style>
+:root {
+  --bg: #f6f8f7;
+  --card: #ffffff;
+  --fg: #1c2a24;
+  --muted: #55645c;
+  --border: #d5ddd8;
+  --primary: #1f6b4a;
+  --primary-fg: #ffffff;
+  --primary-soft: #e6f3ec;
+  --warn-bg: #fff4dc;
+  --warn-fg: #7a4b00;
+  --danger: #b3261e;
+  --radius: 12px;
+}
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--fg);
+  font-family: "Hiragino Sans", "Yu Gothic UI", "Meiryo", system-ui, sans-serif;
+  line-height: 1.7;
+  font-size: 16px;
+}
+main { max-width: 640px; margin: 0 auto; padding: 16px 16px 64px; }
+h1 { font-size: 1.35rem; line-height: 1.4; margin: 0 0 8px; }
+h2 { font-size: 1.1rem; margin: 0 0 8px; }
+p { margin: 0; }
+:focus-visible { outline: 3px solid var(--primary); outline-offset: 2px; }
+h1:focus { outline: none; }
+
+.stack { display: flex; flex-direction: column; gap: 16px; }
+.stack-sm { display: flex; flex-direction: column; gap: 8px; }
+.row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+.row-between { display: flex; gap: 8px; justify-content: space-between; align-items: center; flex-wrap: wrap; }
+
+.card { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px; }
+.card-accent { border-color: var(--primary); border-width: 2px; }
+.muted { color: var(--muted); font-size: 0.9rem; }
+.badge { display: inline-block; background: var(--warn-bg); color: var(--warn-fg); border-radius: 999px; padding: 2px 12px; font-size: 0.8rem; font-weight: 700; }
+.notice { background: var(--primary-soft); border-radius: var(--radius); padding: 12px 16px; }
+.notice-warn { background: var(--warn-bg); color: var(--warn-fg); }
+.error { color: var(--danger); font-weight: 700; }
+ul.plain { margin: 0; padding-left: 1.2em; }
+ul.plain li { margin: 2px 0; }
+ol.steps { margin: 0; padding-left: 1.4em; }
+ol.steps li { margin: 4px 0; }
+
+.progress { height: 8px; background: var(--border); border-radius: 999px; overflow: hidden; }
+.progress > span { display: block; height: 100%; background: var(--primary); }
+
+fieldset { border: 0; padding: 0; margin: 0; min-width: 0; }
+legend { font-weight: 700; padding: 0; margin-bottom: 8px; }
+.options { display: flex; flex-wrap: wrap; gap: 8px; }
+.option { position: relative; }
+.option input { position: absolute; opacity: 0; inset: 0; width: 100%; height: 100%; margin: 0; cursor: pointer; }
+.option span { display: block; padding: 10px 14px; min-height: 44px; border: 2px solid var(--border); border-radius: var(--radius); background: var(--card); }
+.option:has(input:checked) span { border-color: var(--primary); background: var(--primary-soft); font-weight: 700; }
+.option:has(input:focus-visible) span { outline: 3px solid var(--primary); outline-offset: 2px; }
+.options.col { flex-direction: column; }
+.options.col .option span { width: 100%; }
+
+input[type="number"], input[type="text"], input[type="datetime-local"], textarea {
+  width: 100%;
+  font: inherit;
+  padding: 10px 12px;
+  border: 2px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--card);
+  color: var(--fg);
+}
+textarea { min-height: 120px; resize: vertical; }
+label.field { display: flex; flex-direction: column; gap: 4px; font-weight: 700; }
+.inline-num { display: flex; align-items: center; gap: 8px; }
+.inline-num input { max-width: 140px; }
+
+.btn { font: inherit; font-weight: 700; min-height: 44px; padding: 8px 20px; border-radius: var(--radius); border: 2px solid var(--primary); background: var(--card); color: var(--primary); cursor: pointer; }
+.btn:disabled { opacity: 0.45; cursor: not-allowed; }
+.btn-primary { background: var(--primary); color: var(--primary-fg); }
+.btn-quiet { border-color: var(--border); color: var(--muted); font-weight: 400; }
+.btn-danger { border-color: var(--danger); color: var(--danger); }
+
+.bar-row { display: grid; grid-template-columns: 8.5em 1fr 2.5em; gap: 8px; align-items: center; font-size: 0.9rem; }
+.bar { height: 12px; background: var(--border); border-radius: 999px; overflow: hidden; }
+.bar > span { display: block; height: 100%; background: #8fb7a2; }
+.bar-row.top .bar > span { background: var(--primary); }
+.score-big { font-size: 2rem; font-weight: 700; line-height: 1.2; }
+.kv { display: grid; grid-template-columns: auto 1fr; gap: 4px 12px; font-size: 0.95rem; margin: 0; }
+.kv dt { color: var(--muted); }
+.kv dd { margin: 0; }
+.goal { background: var(--primary-soft); border-radius: 8px; padding: 8px 12px; font-size: 0.95rem; }
+.chip { display: inline-block; background: var(--primary-soft); border-radius: 999px; padding: 2px 12px; font-size: 0.9rem; }
+.chart svg { width: 100%; height: auto; display: block; }
+table.data { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
+table.data th, table.data td { border-bottom: 1px solid var(--border); padding: 4px 8px; text-align: left; }
+.qa { border: 1px solid var(--border); border-radius: var(--radius); padding: 12px; }
+.qa-q { font-size: 1.15rem; font-weight: 700; }
+.dots { letter-spacing: 2px; color: var(--primary); }
+</style>
+</head>
+<body>
+<main id="app"></main>
+<noscript>このツールの利用にはJavaScriptが必要です。</noscript>
+
+<script>
+(() => {
+'use strict';
+
+/* =========================================================
+ * 1. データ(先生が赤ペンを入れる部分)
+ * ========================================================= */
+const KEY_HISTORY = 'akahon-self-review:v1';
+const KEY_CARDS = 'akahon-self-review:cards:v1';
+
+const FIELDS = [
+  '細胞', '代謝(呼吸・光合成)', '遺伝情報(DNA・タンパク質合成)', '遺伝(メンデル・連鎖)',
+  '発生', '動物の反応(神経・筋)', '体内環境(恒常性・免疫)', '植物の反応',
+  '生態・個体群', '進化・系統'
+];
+const ROUNDS = [
+  { id: '1', label: '1回目' }, { id: '2', label: '2回目' }, { id: '3', label: '3回目以降' }
+];
+const TIMES = [
+  { id: 'ok', label: '余裕で、見直しまでできた' },
+  { id: 'tight', label: 'ギリギリ終わった' },
+  { id: 'unfinished', label: '時間が足りず、手がつかなかった大問があった' }
+];
+const STUDY = [
+  { id: '30', label: '30分くらい' }, { id: '60', label: '1時間くらい' }, { id: '120', label: '2時間以上' }
+];
+const LOSS = [
+  { id: 'large', label: '大きく落とした' }, { id: 'mid', label: 'そこそこ' }, { id: 'small', label: '少しだけ' }
+];
+const LOSS_WEIGHT = { large: 3, mid: 2, small: 1 };
+const TIME_WEIGHT = { ok: 0, tight: 1, unfinished: 3 };
+const UNLEARNED_WEIGHT = 3;
+
+const TAGS = [
+  { id: 'unlearned', label: '未習・未対策' },
+  { id: 'understanding', label: '理解不足' },
+  { id: 'knowledge', label: '知識不足' },
+  { id: 'reasoning', label: '考察(実験・グラフ)' },
+  { id: 'writing', label: '論述' },
+  { id: 'calc', label: '計算・処理' },
+  { id: 'careless', label: 'ケアレス' },
+  { id: 'timeshort', label: '時間不足' }
+];
+
+const FORMS = [
+  { id: 'term', label: '用語・知識', reasons: [
+    { id: 'not_learned', label: '習っていない', tag: 'unlearned' },
+    { id: 'forgot', label: '覚えていなかった・うろ覚えだった', tag: 'knowledge' },
+    { id: 'confused', label: '似た用語と混同した', tag: 'knowledge' },
+    { id: 'no_mech', label: '用語は言えるが、仕組みがわかっていなかった', tag: 'understanding' }
+  ] },
+  { id: 'reasoning', label: '考察(実験・グラフ)', reasons: [
+    { id: 'cond', label: '実験の条件の違いが整理できなかった', tag: 'reasoning' },
+    { id: 'graph', label: 'グラフの読み取りで手が止まった', tag: 'reasoning' },
+    { id: 'noknow', label: '前提となる知識がなくて考えられなかった', tag: 'knowledge' }
+  ] },
+  { id: 'writing', label: '論述', reasons: [
+    { id: 'what', label: '何を書けばいいかわからなかった', tag: 'understanding' },
+    { id: 'missing', label: '書いたが、要素(キーワード)が足りなかった', tag: 'writing' },
+    { id: 'length', label: '字数に収められなかった', tag: 'writing' },
+    { id: 'notime', label: '時間がなくて書けなかった', tag: 'timeshort' }
+  ] },
+  { id: 'calc', label: '計算・遺伝', reasons: [
+    { id: 'how', label: '解き方がわからなかった', tag: 'understanding' },
+    { id: 'slip', label: '立式はできたが、計算や処理でミスした', tag: 'calc' }
+  ] },
+  { id: 'choice', label: '選択肢(正誤)', reasons: [
+    { id: 'noevidence', label: '根拠がわからず選べなかった', tag: 'knowledge' },
+    { id: 'two', label: '2つで迷って外した', tag: 'knowledge' },
+    { id: 'misread', label: '問題文の条件を読み違えた(「誤っているもの」など)', tag: 'careless' }
+  ] }
+];
+
+/* first = 2分でできる「最初の一歩」。{field} は未習分野名に置き換わる */
+const ACTIONS = {
+  unlearned: {
+    title: '未習分野を1つ選んで、基礎を一周する',
+    short: '未習分野を1つ選んで、教科書と基礎問題を一周する',
+    why: '習っていない範囲は、赤本を解いても点になりにくいからです。先に基礎を固めるほうが、次の赤本で伸びます。',
+    first: '教科書の「{field}」の章を開いて、見出しを声に出して読む',
+    steps: ['教科書の太字の用語を読む', '基礎問題集の同じ分野を解く', '間違えた問題にチェックをつける'],
+    amount: '1分野を数日', goal: '基礎問題の正答率が8割になる'
+  },
+  understanding: {
+    title: '仕組みを、自分の言葉で説明する',
+    short: '教科書を閉じて、仕組みを3行で説明してみる',
+    why: '用語は言えても仕組みがわからないと、少し形が変わった問題で手が止まります。「なぜそうなるか」を言えるようにするのが近道です。',
+    first: '間違えた問題の仕組みを、「〇〇だから△△になる」と1文で言ってみる',
+    steps: ['教科書を閉じる', 'その仕組みを3行で書く', '書けなければ読み直して、矢印(A→B→C)で整理する'],
+    amount: '1テーマ15分', goal: '3行で説明できる'
+  },
+  knowledge: {
+    title: '間違えた用語を覚え直す',
+    short: '間違えた用語を10個書き出して、毎日10分見直す',
+    why: '知識がないと、考える以前に手が止まります。ここは地道に覚える分だけ点になります。',
+    first: '間違えた用語を1つ、「用語カード」に登録する',
+    steps: ['間違えた用語を10個書き出す(用語カードに登録)', '答えを隠して、言えるか確かめる', '3日後にもう一度テストする'],
+    amount: '毎日10分', goal: '10個すべて言える'
+  },
+  reasoning: {
+    title: '実験問題を「条件の表」にする',
+    short: '実験問題で、比べる2つの違いを1つだけ書き出す',
+    why: '考察問題は、「何と何を比べているか」が整理できると一気に解きやすくなります。',
+    first: '赤本の実験問題を1つ開いて、比べている2つに線を引く',
+    steps: ['比べる2つの実験を探す', '違う点を1つだけ書く', '結果の違いが何を意味するか、1文で書く'],
+    amount: '1日1題', goal: '条件の違いを1分で言える'
+  },
+  writing: {
+    title: '模範解答と自分の答案を比べる',
+    short: '模範解答のキーワードに○をつけて、抜けを数える',
+    why: '論述は、必要なキーワードを落とさないことが得点の中心です。抜けのパターンがわかると直せます。',
+    first: '模範解答のキーワードを1つだけ○で囲む',
+    steps: ['模範解答のキーワードに○をつける', '自分の答案で、抜けているものを数える', '字数内で書き直す'],
+    amount: '1日1問', goal: '抜けが0〜1個になる'
+  },
+  calc: {
+    title: '同じ問題を、途中式を省かず解き直す',
+    short: '途中式を省かずに、同じ型の問題を解き直す',
+    why: '解き方はわかっているので、処理の精度を上げれば取れる点です。急ぐほどミスが増えます。',
+    first: '間違えた計算問題の、最初の式を1行だけ書いてみる',
+    steps: ['解き方をもう一度確認する', '途中式をすべて書いて解く', 'ミスした箇所に印をつける'],
+    amount: '1日2問', goal: '同じ型を連続で正解できる'
+  },
+  careless: {
+    title: '問題文の条件に線を引く習慣をつける',
+    short: '「誤っているもの」「すべて」「単位」に線を引く',
+    why: '読み違いは、知識があっても失点します。習慣で防げる、いちばんもったいない失点です。',
+    first: '赤本の設問を3つ開いて、条件の言葉(「誤っているもの」など)に線を引く',
+    steps: ['「誤っているもの」「すべて」「単位」に線を引く', '見直しチェック3項目(単位・条件・選択肢の数)を確認する', '次の演習で実行する'],
+    amount: '次の1回から', goal: '線を引き忘れない'
+  },
+  timeshort: {
+    title: '大問ごとの目標時間を決めて解く',
+    short: '大問ごとの目安時間を決めて、タイマーで解く',
+    why: '時間が足りないと、解けるはずの問題にも手がつかなくなります。配分を決めて練習するだけで変わります。',
+    first: '赤本の各大問の上に、目安の時間を書き込む',
+    steps: ['大問ごとの目安時間を書き込む', 'タイマーを使って解く', '「3分で手が止まったら飛ばす」ルールを決める'],
+    amount: '次の1回', goal: '全部の大問に手をつけて終わる'
+  },
+  stable: {
+    title: '同じ条件で、もう一度再現できるか確かめる',
+    short: '同じ時間・条件で別の年度を解いて、再現できるか確かめる',
+    why: '今回の入力からは、はっきりした課題は見つかりませんでした。調子が良かっただけか、実力かを確かめましょう。',
+    first: '次に解く別の年度の赤本を、机に出しておく',
+    steps: ['別の年度を、同じ制限時間で解く', '間違えた設問があれば、このツールで原因を選ぶ', '2回続けて同じ結果なら、実力と考える'],
+    amount: '次の1回', goal: '2回連続で目標点に届く'
+  }
+};
+
+const SCOPES = [
+  { id: 'first', label: '最初の一歩だけ(2分)' },
+  { id: 'step1', label: 'ステップ1つ目まで' },
+  { id: 'all', label: 'ぜんぶ' }
+];
+
+const FU_STATUS = { done: 'やった', partial: '一部だけやった', none: 'できなかった' };
+const FU_REASONS = [
+  { id: 'time', label: '時間がなかった' },
+  { id: 'forgot', label: '忘れていた' },
+  { id: 'hard', label: '難しかった' },
+  { id: 'mood', label: 'やる気が出なかった' },
+  { id: 'other', label: 'その他' }
+];
+const FU_REASON_MSG = {
+  time: '時間が取れなかったなら、次は2分の「最初の一歩」だけ約束しましょう。',
+  forgot: '忘れていたなら、次は約束を必ずカレンダーに入れましょう。',
+  hard: '難しかったなら、量を減らすより、先生に聞く約束にするのがおすすめです。',
+  mood: 'やる気が出ない日は誰にでもあります。タイマー2分で、最初の一歩だけやってみましょう。',
+  other: 'うまくいかなかった理由に気づけたことが前進です。先生にも話してみてください。'
+};
+
+const CARD_INTERVAL_DAYS = [0, 1, 3, 7];
+const DAY_MS = 86400000;
+
+/* =========================================================
+ * 2. 判断ロジック(純粋関数)
+ * ========================================================= */
+const TAG_IDS = TAGS.map((t) => t.id);
+const tagLabel = (id) => (TAGS.find((t) => t.id === id) || { label: id }).label;
+const findForm = (id) => FORMS.find((f) => f.id === id);
+const findReason = (formId, reasonId) => {
+  const f = findForm(formId);
+  return f ? f.reasons.find((r) => r.id === reasonId) : undefined;
+};
+
+function calcScores(a) {
+  const scores = {};
+  TAG_IDS.forEach((t) => { scores[t] = 0; });
+  a.misses.forEach((m) => {
+    const r = findReason(m.form, m.reason);
+    if (r) scores[r.tag] += LOSS_WEIGHT[m.loss] || 0;
+  });
+  scores.timeshort += TIME_WEIGHT[a.time] || 0;
+  if (a.unlearned.length > 0) scores.unlearned += UNLEARNED_WEIGHT;
+  return scores;
+}
+
+function decide(a) {
+  const scores = calcScores(a);
+  const ranked = TAG_IDS
+    .filter((t) => scores[t] > 0)
+    .sort((x, y) => (scores[y] - scores[x]) || (TAG_IDS.indexOf(x) - TAG_IDS.indexOf(y)));
+  if (scores.unlearned > 0) {
+    ranked.splice(ranked.indexOf('unlearned'), 1);
+    ranked.unshift('unlearned');
+  }
+  return { scores, ranked, primary: ranked[0] || 'stable', secondary: ranked[1] || null };
+}
+
+const pct = (score, full) => Math.round((Number(score) / Number(full)) * 100);
+const normUniv = (s) => String(s || '').normalize('NFKC').replace(/\s+/g, '').toLowerCase();
+
+/* 約束の内容(文章) */
+function firstText(tag, a) {
+  const field = a.unlearned[0] || '未習の分野';
+  return ACTIONS[tag].first.replace('{field}', field);
+}
+function promiseText(tag, scope, a) {
+  const act = ACTIONS[tag];
+  if (scope === 'first') return firstText(tag, a);
+  if (scope === 'step1') return `${act.steps[0]}。目安は「${act.amount}」`;
+  return `${act.title}:${act.steps.join(' → ')}。目安は「${act.amount}」`;
+}
+function defaultScope(a, prev) {
+  if (prev && prev.promise && prev.followup && prev.followup.status !== 'done') return 'first';
+  return a.study === '30' ? 'first' : (a.study === '60' ? 'step1' : 'all');
+}
+
+/* 日時 */
+const pad = (n) => String(n).padStart(2, '0');
+const toLocalIso = (d) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+const WEEK = ['日', '月', '火', '水', '木', '金', '土'];
+function fmtWhen(iso) {
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return '';
+  return `${d.getMonth() + 1}/${d.getDate()}(${WEEK[d.getDay()]}) ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+function whenOptions() {
+  const now = new Date();
+  const at = (off, h) => toLocalIso(new Date(now.getFullYear(), now.getMonth(), now.getDate() + off, h, 0, 0));
+  const opts = [];
+  if (now.getHours() < 19) opts.push({ id: at(0, 20), label: `今日の夜 ${fmtWhen(at(0, 20))}` });
+  opts.push({ id: at(1, 17), label: `明日の夕方 ${fmtWhen(at(1, 17))}` });
+  opts.push({ id: at(1, 20), label: `明日の夜 ${fmtWhen(at(1, 20))}` });
+  const add = (((6 - now.getDay()) + 7) % 7) || 7;
+  opts.push({ id: at(add, 10), label: `次の土曜の朝 ${fmtWhen(at(add, 10))}` });
+  opts.push({ id: 'custom', label: '自分で決める' });
+  return opts;
+}
+
+/* カレンダー(.ics) */
+const icsEscape = (s) => String(s).replace(/\\/g, '\\\\').replace(/;/g, '\\;').replace(/,/g, '\\,').replace(/\r?\n/g, '\\n');
+const icsStamp = (iso) => iso.replace(/[-:]/g, '') + '00';
+function buildIcs(p) {
+  const start = new Date(p.when);
+  const end = new Date(start.getTime() + 15 * 60000);
+  const uid = `akahon-${Date.now()}-${Math.random().toString(36).slice(2, 8)}@local`;
+  const lines = [
+    'BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//akahon-self-review//JA', 'CALSCALE:GREGORIAN',
+    'BEGIN:VEVENT',
+    `UID:${uid}`,
+    `DTSTAMP:${icsStamp(toLocalIso(new Date()))}`,
+    `DTSTART:${icsStamp(p.when)}`,
+    `DTEND:${icsStamp(toLocalIso(end))}`,
+    `SUMMARY:${icsEscape('生物の約束: ' + (ACTIONS[p.tag] ? ACTIONS[p.tag].title : ''))}`,
+    `DESCRIPTION:${icsEscape(p.text)}`,
+    'BEGIN:VALARM', 'ACTION:DISPLAY', `DESCRIPTION:${icsEscape('生物の約束の時間です')}`, 'TRIGGER:-PT5M', 'END:VALARM',
+    'END:VEVENT', 'END:VCALENDAR'
+  ];
+  return lines.join('\r\n');
+}
+
+/* 用語カード */
+const cardIsDue = (c) => !c.lastAt || (Date.now() - c.lastAt) >= CARD_INTERVAL_DAYS[Math.min(c.streak || 0, 3)] * DAY_MS;
+
+/* =========================================================
+ * 3. 保存(この端末のブラウザ内だけ)
+ * ========================================================= */
+function readJson(key) {
+  try {
+    const raw = localStorage.getItem(key);
+    if (!raw) return [];
+    const arr = JSON.parse(raw);
+    return Array.isArray(arr) ? arr : [];
+  } catch (e) { return []; }
+}
+function writeJson(key, arr) {
+  try { localStorage.setItem(key, JSON.stringify(arr)); return true; } catch (e) { return false; }
+}
+function loadHistory() {
+  return readJson(KEY_HISTORY).map((e, i) => (e.id ? e : Object.assign({}, e, { id: 'legacy-' + i })));
+}
+const saveHistory = (arr) => writeJson(KEY_HISTORY, arr);
+function updateEntry(id, patch) {
+  const h = loadHistory();
+  const i = h.findIndex((e) => e.id === id);
+  if (i < 0) return false;
+  h[i] = Object.assign({}, h[i], patch);
+  return saveHistory(h);
+}
+const loadCards = () => readJson(KEY_CARDS);
+const saveCards = (arr) => writeJson(KEY_CARDS, arr);
+function clearKey(key) { try { localStorage.removeItem(key); } catch (e) { /* noop */ } }
+const newId = (p) => p + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+
+function makeEntry(a, d, promise) {
+  return {
+    id: newId('e'), ts: Date.now(), date: new Date().toLocaleDateString('ja-JP'),
+    round: a.round, univ: a.univ.trim(), year: a.year,
+    score: Number(a.score), full: Number(a.full),
+    target: a.target === '' ? null : Number(a.target),
+    primary: d.primary, secondary: d.secondary, scores: d.scores,
+    promise: promise || null, followup: null
+  };
+}
+
+/* =========================================================
+ * 4. AIに貼る文章
+ * ========================================================= */
+function buildPrompt(a, d, includeMemo, prev) {
+  const L = [];
+  L.push('あなたは大学受験の生物を教える先生役です。');
+  L.push('以下は、高校3年生の受験生が赤本(過去問)を解いたあとの自己分析の結果です。');
+  L.push('');
+  L.push('【診断結果(この優先順位は変えないでください)】');
+  const roundLabel = (ROUNDS.find((r) => r.id === a.round) || {}).label || '';
+  L.push(`- 赤本: ${roundLabel}、得点 ${a.score}/${a.full}(${pct(a.score, a.full)}%)`);
+  L.push(`- 最優先の課題: ${d.primary === 'stable' ? '(はっきりした課題なし)' : tagLabel(d.primary)}`);
+  if (d.secondary) L.push(`- 次点の課題: ${tagLabel(d.secondary)}`);
+  L.push(`- 未習・自信のない分野: ${a.unlearned.length ? a.unlearned.join('、') : 'なし'}`);
+  L.push(`- 時間配分: ${(TIMES.find((t) => t.id === a.time) || {}).label || ''}`);
+  if (a.misses.length) {
+    L.push('- 失点した設問:');
+    a.misses.forEach((m, i) => {
+      const f = findForm(m.form); const r = findReason(m.form, m.reason); const l = LOSS.find((x) => x.id === m.loss);
+      L.push(`  ${i + 1}. 形式: ${f ? f.label : ''} / 原因: ${r ? r.label : ''} / 失点: ${l ? l.label : ''}`);
+    });
+  }
+  L.push(`- 1日に生物に使える時間: ${(STUDY.find((s) => s.id === a.study) || {}).label || ''}`);
+  if (prev && prev.promise && prev.followup) {
+    L.push(`- 前回の約束(${ACTIONS[prev.promise.tag] ? ACTIONS[prev.promise.tag].title : ''})の実行: ${FU_STATUS[prev.followup.status] || ''}`);
+  }
+  if (includeMemo && a.memo.trim()) L.push(`- 生徒のメモ: ${a.memo.trim()}`);
+  L.push('');
+  L.push('【お願い】');
+  L.push('- 上の診断結果の優先順位を前提に、次の赤本までにやることを一緒に考えてください。');
+  L.push('- 難しい言葉は避けて、短く、やさしく答えてください。一度に出す提案は1つまでにしてください。');
+  L.push('- 最初に、私の理解度を確かめる質問を1〜2個してください。');
+  L.push('- 個人情報(名前・学校名など)は聞かないでください。');
+  L.push('- 不安や悩みの相談は、学校や塾の先生など身近な大人にも話すようすすめてください。');
+  return L.join('\n');
+}
+
+/* =========================================================
+ * 5. 状態
+ * ========================================================= */
+const STEPS = ['basic', 'time', 'unlearned', 'misses', 'study', 'memo'];
+const newAnswers = () => ({
+  round: '', score: '', full: '', univ: '', year: '', target: '',
+  time: '', unlearned: [], misses: [], study: '', memo: ''
+});
+const newMiss = () => ({ label: '', form: '', reason: '', loss: '' });
+
+const state = {
+  step: 'intro',
+  a: newAnswers(),
+  error: '',
+  result: null,
+  saved: false,
+  savedId: '',
+  savedPromise: null,
+  promise: { when: '', custom: '', scope: 'first' },
+  promiseError: '',
+  showAi: false,
+  includeMemo: false,
+  followup: { status: '', reason: '' },
+  followupMsg: '',
+  followupError: '',
+  cardForm: { q: '', a: '' },
+  cardError: '',
+  cardsFrom: 'intro',
+  review: null
+};
+
+/* =========================================================
+ * 6. 画面
+ * ========================================================= */
+const app = document.getElementById('app');
+const esc = (s) => String(s).replace(/[&<>"']/g, (c) => (
+  { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]
+));
+
+function radios(name, options, value, attrs, cls) {
+  return `<div class="options ${cls || ''}">` + options.map((o) => (
+    `<label class="option"><input type="radio" name="${name}" value="${esc(o.id)}" ${attrs} ${value === o.id ? 'checked' : ''}><span>${esc(o.label)}</span></label>`
+  )).join('') + '</div>';
+}
+function progress(stepId) {
+  const i = STEPS.indexOf(stepId);
+  return `
+    <div class="stack-sm">
+      <div class="row-between"><span class="muted">${i + 1} / ${STEPS.length}</span><span class="muted">約5分</span></div>
+      <div class="progress" role="progressbar" aria-valuemin="1" aria-valuemax="${STEPS.length}" aria-valuenow="${i + 1}"><span style="width:${((i + 1) / STEPS.length) * 100}%"></span></div>
+    </div>`;
+}
+function nav(stepId, nextLabel) {
+  return `
+    <div class="row-between">
+      <button class="btn btn-quiet" data-action="back">もどる</button>
+      <button class="btn btn-primary" data-action="next">${nextLabel || '次へ'}</button>
+    </div>`;
+}
+const errorHtml = (msg) => (msg ? `<p class="error" role="alert">${esc(msg)}</p>` : '');
+
+/* --- トップ --- */
+function followupHtml(entry) {
+  const f = state.followup;
+  const p = entry.promise;
+  return `
+    <section class="card card-accent stack" aria-labelledby="fu">
+      <h2 id="fu">前回の約束、どうでしたか?</h2>
+      <dl class="kv">
+        <dt>日時</dt><dd>${esc(fmtWhen(p.when))}</dd>
+        <dt>やること</dt><dd>${esc(p.text)}</dd>
+      </dl>
+      <fieldset>
+        <legend>やってみて、どうでしたか?</legend>
+        ${radios('fu-status', Object.keys(FU_STATUS).map((k) => ({ id: k, label: FU_STATUS[k] })), f.status, 'data-fu="status"')}
+      </fieldset>
+      ${(f.status === 'partial' || f.status === 'none') ? `
+      <fieldset>
+        <legend>いちばん近い理由は?</legend>
+        ${radios('fu-reason', FU_REASONS, f.reason, 'data-fu="reason"', 'col')}
+      </fieldset>` : ''}
+      ${errorHtml(state.followupError)}
+      <div><button class="btn btn-primary" data-action="record-followup" data-id="${esc(entry.id)}">記録する</button></div>
+    </section>`;
+}
+
+function renderIntro() {
+  const history = loadHistory();
+  const last = history[history.length - 1];
+  const pending = [...history].reverse().find((e) => e.promise && !e.followup);
+  const cards = loadCards();
+  const due = cards.filter(cardIsDue).length;
+  return `
+    <div class="stack">
+      <div><span class="badge">試作版 v2(先生の確認用)</span></div>
+      <h1 tabindex="-1">赤本 自己分析ツール(生物)</h1>
+      <p>赤本を解いたあとに、いくつか選ぶだけ。<strong>次にやることが1つ決まります。</strong>5分で終わります。</p>
+      ${state.followupMsg ? `<div class="notice" role="status">${esc(state.followupMsg)}</div>` : ''}
+      ${pending ? followupHtml(pending) : ''}
+      <div class="row">
+        <button class="btn btn-primary" data-action="start">はじめる</button>
+        <button class="btn" data-action="open-cards">用語カード(${cards.length}枚${due ? `・今日の復習 ${due}枚` : ''})</button>
+      </div>
+      <div class="card stack-sm">
+        <h2>安心して使えるように</h2>
+        <ul class="plain">
+          <li>名前や学校名は、聞きません。志望校名と目標は任意で、入れても、この端末の中だけです。</li>
+          <li>入力した内容は、この端末のブラウザの中だけにあります。外には送られません。</li>
+          <li>結果の保存は、自分でボタンを押したときだけです。</li>
+          <li>AIは、使わなくても結果が出ます。使いたい人だけの、おまけです。</li>
+        </ul>
+      </div>
+      ${last ? `
+      <div class="notice stack-sm">
+        <p>この端末に、保存された結果が <strong>${history.length}件</strong> あります(最新: ${esc(last.date)})。</p>
+        <div><button class="btn btn-danger" data-action="clear">保存した結果を消す</button></div>
+      </div>` : ''}
+    </div>`;
+}
+
+/* --- 入力 --- */
+function renderBasic() {
+  const a = state.a;
+  return `
+    <div class="stack">
+      ${progress('basic')}
+      <h1 tabindex="-1">今回の赤本について</h1>
+      <fieldset>
+        <legend>赤本は何回目ですか?</legend>
+        ${radios('round', ROUNDS, a.round, 'data-bind="round"')}
+      </fieldset>
+      <fieldset>
+        <legend>得点と満点を入力してください</legend>
+        <div class="inline-num">
+          <input type="number" inputmode="decimal" min="0" step="any" aria-label="得点" placeholder="得点" data-text="score" value="${esc(a.score)}">
+          <span>/</span>
+          <input type="number" inputmode="decimal" min="1" step="any" aria-label="満点" placeholder="満点 (例: 100)" data-text="full" value="${esc(a.full)}">
+          <span>点</span>
+        </div>
+      </fieldset>
+      <div class="card stack">
+        <h2>大学と目標(任意)</h2>
+        <p class="muted">入れると、同じ大学を解いたときの得点率の変化が見られます。この端末の中だけに保存されます。</p>
+        <label class="field"><span>志望校(大学名)</span>
+          <input type="text" maxlength="30" placeholder="例: ○○大学" data-text="univ" value="${esc(a.univ)}"></label>
+        <label class="field"><span>解いた年度(西暦)</span>
+          <input type="number" inputmode="numeric" min="2000" max="2100" placeholder="例: 2025" data-text="year" value="${esc(a.year)}"></label>
+        <label class="field"><span>目標の得点率(%)</span>
+          <input type="number" inputmode="decimal" min="0" max="100" step="any" placeholder="例: 70" data-text="target" value="${esc(a.target)}"></label>
+        <p class="muted">生物だけの合格最低点は、公表されていない大学が多いです。先生と相談して決めた目標を入れてください。</p>
+      </div>
+      ${errorHtml(state.error)}
+      ${nav('basic')}
+    </div>`;
+}
+function renderTime() {
+  const a = state.a;
+  return `
+    <div class="stack">
+      ${progress('time')}
+      <h1 tabindex="-1">時間はどうでしたか?</h1>
+      <fieldset>
+        <legend>制限時間の中で、解き終わりましたか?</legend>
+        ${radios('time', TIMES, a.time, 'data-bind="time"', 'col')}
+      </fieldset>
+      ${errorHtml(state.error)}
+      ${nav('time')}
+    </div>`;
+}
+function renderUnlearned() {
+  const a = state.a;
+  return `
+    <div class="stack">
+      ${progress('unlearned')}
+      <h1 tabindex="-1">まだの分野はありますか?</h1>
+      <fieldset>
+        <legend>まだ習っていない、または自信のない分野を選んでください(何個でも。なければ何も選ばずに次へ)</legend>
+        <div class="options">${FIELDS.map((f) => `<label class="option"><input type="checkbox" value="${esc(f)}" data-multi="unlearned" ${a.unlearned.includes(f) ? 'checked' : ''}><span>${esc(f)}</span></label>`).join('')}</div>
+      </fieldset>
+      ${nav('unlearned')}
+    </div>`;
+}
+function renderMiss(m, i) {
+  const form = findForm(m.form);
+  return `
+    <div class="card stack">
+      <div class="row-between">
+        <h2>点を落とした設問 ${i + 1}</h2>
+        <button class="btn btn-quiet" data-action="remove-miss" data-index="${i}">この設問を消す</button>
+      </div>
+      <label class="field">
+        <span>どの設問か、メモ(任意)</span>
+        <input type="text" maxlength="30" placeholder="例: 大問2 問3" data-miss="${i}" data-key="label" data-text-miss="1" value="${esc(m.label)}">
+      </label>
+      <fieldset>
+        <legend>どんな問題でしたか?</legend>
+        <div class="options">${FORMS.map((f) => `<label class="option"><input type="radio" name="miss${i}-form" value="${f.id}" data-miss="${i}" data-key="form" ${m.form === f.id ? 'checked' : ''}><span>${esc(f.label)}</span></label>`).join('')}</div>
+      </fieldset>
+      ${form ? `
+      <fieldset>
+        <legend>いちばん近い理由は?</legend>
+        <div class="options col">${form.reasons.map((r) => `<label class="option"><input type="radio" name="miss${i}-reason" value="${r.id}" data-miss="${i}" data-key="reason" ${m.reason === r.id ? 'checked' : ''}><span>${esc(r.label)}</span></label>`).join('')}</div>
+      </fieldset>` : ''}
+      <fieldset>
+        <legend>どのくらい落としましたか?</legend>
+        <div class="options">${LOSS.map((l) => `<label class="option"><input type="radio" name="miss${i}-loss" value="${l.id}" data-miss="${i}" data-key="loss" ${m.loss === l.id ? 'checked' : ''}><span>${esc(l.label)}</span></label>`).join('')}</div>
+      </fieldset>
+    </div>`;
+}
+function renderMisses() {
+  const a = state.a;
+  return `
+    <div class="stack">
+      ${progress('misses')}
+      <h1 tabindex="-1">点を落とした設問</h1>
+      <p>大きく落とした順に、最大3つまで選んでください。全部書かなくて大丈夫です。</p>
+      ${a.misses.length === 0 ? '<p class="notice">失点した設問がない場合は、このまま次へ進めます。</p>' : ''}
+      ${a.misses.map(renderMiss).join('')}
+      <div><button class="btn" data-action="add-miss" ${a.misses.length >= 3 ? 'disabled' : ''}>設問を追加する(${a.misses.length}/3)</button></div>
+      ${errorHtml(state.error)}
+      ${nav('misses')}
+    </div>`;
+}
+function renderStudy() {
+  const a = state.a;
+  return `
+    <div class="stack">
+      ${progress('study')}
+      <h1 tabindex="-1">使える時間</h1>
+      <fieldset>
+        <legend>1日に、生物に使える時間はどのくらいですか?</legend>
+        ${radios('study', STUDY, a.study, 'data-bind="study"')}
+      </fieldset>
+      <p class="muted">時間に合わせて、提案の量を調整します。</p>
+      ${errorHtml(state.error)}
+      ${nav('study')}
+    </div>`;
+}
+function renderMemo() {
+  const a = state.a;
+  return `
+    <div class="stack">
+      ${progress('memo')}
+      <h1 tabindex="-1">ひとこと(任意)</h1>
+      <label class="field">
+        <span>いちばん悔しかった問題と、その理由があれば書いてください。書かなくても結果は出ます。</span>
+        <textarea maxlength="400" data-text="memo" placeholder="例: 光合成の実験問題で、グラフの意味がわからなくて手が止まった">${esc(a.memo)}</textarea>
+      </label>
+      <p class="muted">ここに書いた内容は、この画面にだけ表示されます。名前や学校名は書かないでください。</p>
+      ${nav('memo', '結果を見る')}
+    </div>`;
+}
+
+/* --- 結果 --- */
+function actionHtml(tag, a, opts) {
+  const act = ACTIONS[tag];
+  const steps = opts.onlyFirst ? act.steps.slice(0, 1) : act.steps;
+  const extra = tag === 'unlearned' && a.unlearned.length
+    ? `<div class="stack-sm"><p class="muted">選んだ分野(どれから始めるか迷ったら、今回の赤本でよく出ていた分野から):</p><div class="row">${a.unlearned.map((f) => `<span class="chip">${esc(f)}</span>`).join('')}</div></div>`
+    : '';
+  const cardBtn = tag === 'knowledge'
+    ? '<div><button class="btn" data-action="open-cards-from-result">間違えた用語を、用語カードにする</button></div>' : '';
+  return `
+    <div class="stack">
+      <div>
+        <p class="muted">最優先は「${esc(tag === 'stable' ? '課題なし' : tagLabel(tag))}」</p>
+        <h2>${esc(act.title)}</h2>
+      </div>
+      <p>${esc(act.why)}</p>
+      ${extra}
+      <ol class="steps">${steps.map((s) => `<li>${esc(s)}</li>`).join('')}</ol>
+      ${opts.onlyFirst ? '<p class="notice">時間が少ないので、まず最初のひとつだけでOKです。慣れたら続きもやってみましょう。</p>' : ''}
+      <dl class="kv"><dt>目安</dt><dd>${esc(act.amount)}</dd></dl>
+      <p class="goal"><strong>終わりの目印:</strong> ${esc(act.goal)}</p>
+      ${cardBtn}
+    </div>`;
+}
+
+function promiseHtml(d, a) {
+  if (state.savedPromise) {
+    const p = state.savedPromise;
+    return `
+      <section class="card card-accent stack" aria-labelledby="pc">
+        <h2 id="pc">約束カード</h2>
+        <p class="score-big">${esc(fmtWhen(p.when))}</p>
+        <p><strong>やること:</strong> ${esc(p.text)}</p>
+        <div class="row">
+          <button class="btn btn-primary" data-action="ics">カレンダーに入れる</button>
+          <button class="btn" data-action="copy-promise">文章をコピー</button>
+        </div>
+        <p id="promise-status" class="muted" role="status"></p>
+        <p class="muted">この画面をスクリーンショットして、スマホの待ち受けや写真に残すのもおすすめです。次にこのツールを開いたとき、約束を守れたか聞かれます。</p>
+      </section>`;
+  }
+  const p = state.promise;
+  const opts = whenOptions();
+  const scopeOpts = SCOPES.map((s) => ({ id: s.id, label: s.label }));
+  return `
+    <section class="card card-accent stack" aria-labelledby="pf">
+      <h2 id="pf">約束する</h2>
+      <p>提案を「やるかも」で終わらせないために、いつやるか決めましょう。</p>
+      <fieldset>
+        <legend>いつやりますか?</legend>
+        ${radios('pwhen', opts, p.when, 'data-pr="when"', 'col')}
+        ${p.when === 'custom' ? `<label class="field" style="margin-top:8px"><span>日時</span><input type="datetime-local" data-pr-custom="1" value="${esc(p.custom)}"></label>` : ''}
+      </fieldset>
+      <fieldset>
+        <legend>どこまでやりますか?</legend>
+        ${radios('pscope', scopeOpts, p.scope, 'data-pr="scope"', 'col')}
+        <p class="muted" style="margin-top:8px">やること: ${esc(promiseText(d.primary, p.scope, a))}</p>
+      </fieldset>
+      ${errorHtml(state.promiseError)}
+      <div><button class="btn btn-primary" data-action="promise">約束して、この端末に保存する</button></div>
+    </section>`;
+}
+
+function chartHtml(points, target) {
+  const W = 320, H = 200, L = 36, R = 14, T = 16, B = 40;
+  const iw = W - L - R, ih = H - T - B;
+  const x = (i) => (points.length === 1 ? L + iw / 2 : L + (iw * i) / (points.length - 1));
+  const y = (v) => T + ih * (1 - Math.max(0, Math.min(100, v)) / 100);
+  const grid = [0, 25, 50, 75, 100].map((v) => `<line x1="${L}" y1="${y(v)}" x2="${W - R}" y2="${y(v)}" stroke="#d5ddd8" stroke-width="1"/><text x="${L - 6}" y="${y(v) + 4}" text-anchor="end" font-size="10" fill="#55645c">${v}</text>`).join('');
+  const line = points.length > 1 ? `<polyline points="${points.map((p, i) => `${x(i)},${y(p.v)}`).join(' ')}" fill="none" stroke="#1f6b4a" stroke-width="2"/>` : '';
+  const tl = target != null
+    ? `<line x1="${L}" y1="${y(target)}" x2="${W - R}" y2="${y(target)}" stroke="#b3261e" stroke-width="2" stroke-dasharray="6 4"/><text x="${W - R}" y="${y(target) - 5}" text-anchor="end" font-size="11" font-weight="700" fill="#b3261e">目標 ${target}%</text>`
+    : '';
+  const dots = points.map((p, i) => `<circle cx="${x(i)}" cy="${y(p.v)}" r="5" fill="${p.draft ? '#ffffff' : '#1f6b4a'}" stroke="#1f6b4a" stroke-width="2"><title>${esc(p.label)}: ${p.v}%</title></circle><text x="${x(i)}" y="${y(p.v) + 18}" text-anchor="middle" font-size="11" fill="#1c2a24">${p.v}%</text><text x="${x(i)}" y="${H - B + 16}" text-anchor="middle" font-size="10" fill="#55645c">${esc(p.label)}</text>`).join('');
+  return `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="得点率の推移。${esc(points.map((p) => p.label + 'は' + p.v + '%').join('、'))}${target != null ? '。目標は' + target + '%' : ''}">${grid}${tl}${line}${dots}</svg>`;
+}
+
+function trendHtml(a, res) {
+  const univ = a.univ.trim();
+  if (!univ) {
+    return `<section class="card stack-sm" aria-labelledby="tr"><h2 id="tr">大学別の得点率の推移</h2><p class="muted">志望校を入れると、同じ大学を解くたびに、得点率の変化が見られます(もどって入力できます)。</p></section>`;
+  }
+  const hist = loadHistory().filter((e) => normUniv(e.univ) === normUniv(univ));
+  const points = hist.map((e) => ({ v: pct(e.score, e.full), label: e.year ? String(e.year) : e.date.replace(/^\d+\//, ''), target: e.target }));
+  const targetFromEntries = [...hist].reverse().find((e) => e.target != null);
+  let target = a.target !== '' ? Number(a.target) : (targetFromEntries ? targetFromEntries.target : null);
+  if (!state.savedId) points.push({ v: pct(a.score, a.full), label: (a.year ? String(a.year) : '今回'), draft: true });
+  if (points.length < 2) {
+    return `<section class="card stack-sm" aria-labelledby="tr"><h2 id="tr">${esc(univ)} の得点率の推移</h2><p class="muted">同じ大学をもう1回解くと、推移が見えます。保存しておくと、次回に比べられます。</p>${target != null ? `<p>目標: ${target}%</p>` : ''}</section>`;
+  }
+  return `
+    <section class="card stack" aria-labelledby="tr">
+      <h2 id="tr">${esc(univ)} の得点率の推移</h2>
+      <div class="chart">${chartHtml(points, target)}</div>
+      ${points.some((p) => p.draft) ? '<p class="muted">白い丸は、まだ保存していない今回の結果です。</p>' : ''}
+      <details><summary>数字で見る</summary>
+        <table class="data"><thead><tr><th>年度・日付</th><th>得点率</th></tr></thead><tbody>
+        ${points.map((p) => `<tr><td>${esc(p.label)}</td><td>${p.v}%</td></tr>`).join('')}
+        </tbody></table>
+      </details>
+    </section>`;
+}
+
+function compareHtml(res, d, a) {
+  const prev = res.prev;
+  if (!prev) return '';
+  const pr = pct(prev.score, prev.full);
+  const cr = pct(a.score, a.full);
+  const diff = cr - pr;
+  const diffText = diff > 0 ? `+${diff}` : String(diff);
+  const same = prev.primary === d.primary;
+  const prevLabel = prev.primary === 'stable' ? '課題なし' : tagLabel(prev.primary);
+  let fu = '';
+  if (prev.promise) {
+    if (!prev.followup) fu = '<p>前回の約束: まだ「どうだったか」を記録していません。トップ画面で記録できます。</p>';
+    else if (prev.followup.status === 'done') fu = `<p>前回の約束: やりきりました。${diff > 0 ? 'やったことが、得点率に出ています。' : '今回は得点が動きませんでしたが、赤本ごとの難しさの差もあります。続けて確かめましょう。'}</p>`;
+    else fu = `<p>前回の約束: ${esc(FU_STATUS[prev.followup.status])}。うまくいかなかった理由を、先生に話してみましょう。</p>`;
+  }
+  return `
+    <section class="card stack-sm" aria-labelledby="cmp">
+      <h2 id="cmp">前回との比べ方</h2>
+      <p class="muted">${res.prevSame ? '同じ大学の前回と比べています。' : '前回(別の大学、または大学が未入力)と比べています。'}</p>
+      <p>得点率: 前回 ${pr}%(${esc(prev.date)})→ 今回 ${cr}%(${diffText}ポイント)</p>
+      ${same
+        ? `<p>前回と同じ「${esc(prevLabel)}」が、今回も最優先です。前回のアクションは続けられましたか?続かなかったなら、時間を半分にして「最初の一歩」だけからやり直せば十分です。</p>`
+        : `<p>前回の最優先だった「${esc(prevLabel)}」は、今回は最優先ではなくなりました。課題が入れ替わるのは、前に進んでいる証拠です。</p>`}
+      ${fu}
+    </section>`;
+}
+
+function renderResult() {
+  const a = state.a;
+  const { d, prev } = state.result;
+  const cr = pct(a.score, a.full);
+  const maxScore = Math.max(1, ...d.ranked.map((t) => d.scores[t]));
+  const lead = a.round === '1'
+    ? '1回目は、点数が低くて当たり前です。今日わかったことが、いちばんの収穫です。'
+    : '赤本を重ねるほど、点数よりも「なぜ落としたか」を見る力が大事になります。';
+  const onlyFirst = a.study === '30';
+  const showSecondary = d.secondary && a.study !== '30';
+  const prompt = buildPrompt(a, d, state.includeMemo, prev);
+  const hasMemo = a.memo.trim().length > 0;
+  return `
+    <div class="stack">
+      <h1 tabindex="-1">結果</h1>
+      <p class="notice">${esc(lead)}</p>
+
+      <section class="card stack" aria-labelledby="found">
+        <h2 id="found">今回わかったこと</h2>
+        <p><span class="score-big">${cr}%</span> <span class="muted">(${esc(a.score)} / ${esc(a.full)}点)</span></p>
+        ${d.ranked.length ? `
+        <div class="stack-sm" role="list" aria-label="失点の内訳">
+          ${d.ranked.map((t, i) => `
+            <div class="bar-row ${i === 0 ? 'top' : ''}" role="listitem">
+              <span>${esc(tagLabel(t))}</span>
+              <div class="bar"><span style="width:${Math.round((d.scores[t] / maxScore) * 100)}%"></span></div>
+              <span>${d.scores[t]}</span>
+            </div>`).join('')}
+        </div>
+        <p class="muted">数字が大きいほど、点を落とした影響が大きかった課題です。</p>` : '<p>はっきりした課題は見つかりませんでした。</p>'}
+      </section>
+
+      <section class="card" aria-labelledby="top">
+        <h2 id="top" style="margin-bottom:12px">次の赤本までにやること</h2>
+        ${actionHtml(d.primary, a, { onlyFirst })}
+      </section>
+
+      ${promiseHtml(d, a)}
+
+      ${showSecondary ? `
+      <section class="card stack-sm" aria-labelledby="second">
+        <h2 id="second">余力があれば</h2>
+        <p><strong>${esc(tagLabel(d.secondary))}</strong>: ${esc(ACTIONS[d.secondary].short)}</p>
+      </section>` : ''}
+
+      ${trendHtml(a, state.result)}
+      ${compareHtml(state.result, d, a)}
+
+      <section class="card stack-sm" aria-labelledby="save">
+        <h2 id="save">結果だけ残す</h2>
+        <p class="muted">約束はせず、結果だけ保存します。保存先は、この端末のブラウザの中だけです。</p>
+        <div class="row">
+          <button class="btn" data-action="save" ${state.savedId ? 'disabled' : ''}>${state.savedId ? '保存しました' : 'この端末に保存する'}</button>
+          <button class="btn btn-danger" data-action="clear">保存した結果を全部消す</button>
+        </div>
+        <p id="save-status" class="muted" role="status"></p>
+      </section>
+
+      <section class="card stack-sm" aria-labelledby="ai">
+        <h2 id="ai">AIに相談してみる(任意)</h2>
+        <p class="muted">ChatGPTやGeminiなどのAIを、すでに使っている人向けです。使わなくても、ここまでの結果で十分です。</p>
+        <div><button class="btn" data-action="toggle-ai" aria-expanded="${state.showAi}">${state.showAi ? '閉じる' : 'AIに渡す文章を見る'}</button></div>
+        ${state.showAi ? `
+        <div class="notice notice-warn stack-sm">
+          <p><strong>使う前に確認してください</strong></p>
+          <ul class="plain">
+            <li>このツールから、AIには何も送られません。下の文章を、自分でコピーして貼ります。</li>
+            <li>AIのアカウントがある人だけ。年齢や保護者の了解は、各サービスのルールに従ってください。</li>
+            <li>塾がすすめているものではありません。名前や学校名は、貼らないでください。</li>
+            <li>AIの答えは、間違うことがあります。迷ったら先生に聞いてください。</li>
+          </ul>
+        </div>
+        ${hasMemo ? `<label class="row"><input type="checkbox" id="include-memo" ${state.includeMemo ? 'checked' : ''}> <span>「ひとこと」の内容も、AIに渡す文章に入れる</span></label>` : ''}
+        <label class="field">
+          <span>AIに渡す文章(中身を読んでから使ってください)</span>
+          <textarea id="prompt-text" readonly style="min-height:260px">${esc(prompt)}</textarea>
+        </label>
+        <div class="row">
+          <button class="btn btn-primary" data-action="copy">コピーする</button>
+          <span id="copy-status" class="muted" role="status"></span>
+        </div>` : ''}
+      </section>
+
+      <p class="muted">この提案は目安です。迷ったときは、先生に相談してください。</p>
+      <div><button class="btn btn-quiet" data-action="restart">トップにもどる</button></div>
+    </div>`;
+}
+
+/* --- 用語カード --- */
+function renderCards() {
+  const cards = loadCards();
+  const due = cards.filter(cardIsDue).length;
+  return `
+    <div class="stack">
+      <h1 tabindex="-1">用語カード</h1>
+      <p>間違えた用語を、「問い」と「答え」のカードにします。言えたカードは、1日後・3日後・7日後にまた出ます。言えなかったカードは、すぐにまた出ます。</p>
+      <div class="card stack">
+        <h2>カードを作る</h2>
+        <label class="field"><span>問い</span>
+          <input type="text" maxlength="60" placeholder="例: ATP合成酵素があるのはどこ?" data-card="q" value="${esc(state.cardForm.q)}"></label>
+        <label class="field"><span>答え</span>
+          <input type="text" maxlength="80" placeholder="例: ミトコンドリアの内膜" data-card="a" value="${esc(state.cardForm.a)}"></label>
+        ${errorHtml(state.cardError)}
+        <div><button class="btn btn-primary" data-action="add-card">カードを追加する</button></div>
+      </div>
+      <div class="row">
+        <button class="btn btn-primary" data-action="start-review" ${due ? '' : 'disabled'}>復習する(${due}枚)</button>
+        ${cards.length ? '<button class="btn btn-danger" data-action="clear-cards">カードを全部消す</button>' : ''}
+      </div>
+      ${cards.length ? `
+      <div class="stack-sm">
+        <h2>カード一覧(${cards.length}枚)</h2>
+        ${cards.map((c) => `
+          <div class="qa stack-sm">
+            <p><strong>${esc(c.q)}</strong></p>
+            <p>${esc(c.a)}</p>
+            <div class="row-between"><span class="muted">覚えた度: <span class="dots" aria-label="${Math.min(c.streak || 0, 3)} / 3">${'●'.repeat(Math.min(c.streak || 0, 3))}${'○'.repeat(3 - Math.min(c.streak || 0, 3))}</span></span>
+            <button class="btn btn-quiet" data-action="remove-card" data-id="${esc(c.id)}">消す</button></div>
+          </div>`).join('')}
+      </div>` : ''}
+      <div><button class="btn btn-quiet" data-action="back-from-cards">もどる</button></div>
+    </div>`;
+}
+function renderReview() {
+  const r = state.review;
+  if (!r || r.done) {
+    return `
+      <div class="stack">
+        <h1 tabindex="-1">復習おわり</h1>
+        <p class="notice">言えた: ${r ? r.ok : 0}回 / 言えなかった: ${r ? r.ng : 0}回。言えなかったカードは、また出てきます。</p>
+        <div><button class="btn btn-primary" data-action="open-cards">カード一覧にもどる</button></div>
+      </div>`;
+  }
+  const cards = loadCards();
+  const c = cards.find((x) => x.id === r.ids[r.i]);
+  if (!c) return '<div class="stack"><p>カードが見つかりません。</p><button class="btn" data-action="open-cards">もどる</button></div>';
+  return `
+    <div class="stack">
+      <div class="row-between"><span class="muted">${r.i + 1} / ${r.ids.length}</span>
+        <button class="btn btn-quiet" data-action="finish-review">ここでやめる</button></div>
+      <h1 tabindex="-1">思い出してみよう</h1>
+      <div class="qa stack">
+        <p class="qa-q">${esc(c.q)}</p>
+        ${r.shown ? `<p class="goal"><strong>答え:</strong> ${esc(c.a)}</p>` : ''}
+      </div>
+      ${r.shown ? `
+      <div class="row">
+        <button class="btn btn-primary" data-action="card-ok">言えた</button>
+        <button class="btn" data-action="card-ng">言えなかった</button>
+      </div>` : '<div><button class="btn btn-primary" data-action="show-answer">答えを見る</button></div>'}
+      ${r.shown ? '' : '<p class="muted">先に、頭の中や声で答えてから、答えを見ましょう。</p>'}
+    </div>`;
+}
+
+const VIEWS = {
+  intro: renderIntro, basic: renderBasic, time: renderTime, unlearned: renderUnlearned,
+  misses: renderMisses, study: renderStudy, memo: renderMemo, result: renderResult,
+  cards: renderCards, review: renderReview
+};
+
+function render(opts) {
+  app.innerHTML = VIEWS[state.step]();
+  if (opts && opts.focusSelector) {
+    const el = app.querySelector(opts.focusSelector);
+    if (el) el.focus();
+  } else if (opts && opts.focusTop) {
+    const h = app.querySelector('h1');
+    if (h) h.focus();
+    window.scrollTo(0, 0);
+  }
+}
+function goto(step) {
+  state.step = step;
+  state.error = '';
+  render({ focusTop: true });
+}
+const radioSel = (t) => `input[name="${t.name}"][value="${t.value}"]`;
+
+/* =========================================================
+ * 7. 入力チェック
+ * ========================================================= */
+function validate(step) {
+  const a = state.a;
+  if (step === 'basic') {
+    if (!a.round) return '何回目かを選んでください。';
+    const s = Number(a.score);
+    const f = Number(a.full);
+    if (a.score === '' || a.full === '') return '得点と満点を入力してください。';
+    if (!(f > 0)) return '満点は、1以上の数字を入力してください。';
+    if (!(s >= 0) || s > f) return '得点は、0以上で満点以下の数字を入力してください。';
+    if (a.year !== '') {
+      const y = Number(a.year);
+      if (!(Number.isInteger(y) && y >= 2000 && y <= 2100)) return '年度は、西暦(例: 2025)で入力してください。';
+    }
+    if (a.target !== '') {
+      const t = Number(a.target);
+      if (!(t >= 0 && t <= 100)) return '目標の得点率は、0〜100で入力してください。';
+    }
+  }
+  if (step === 'time' && !a.time) return '当てはまるものを選んでください。';
+  if (step === 'misses') {
+    for (let i = 0; i < a.misses.length; i++) {
+      const m = a.misses[i];
+      if (!m.form) return `設問${i + 1}: どんな問題だったか選んでください。`;
+      if (!m.reason) return `設問${i + 1}: 理由を選んでください。`;
+      if (!m.loss) return `設問${i + 1}: どのくらい落としたか選んでください。`;
+    }
+  }
+  if (step === 'study' && !a.study) return '使える時間を選んでください。';
+  return '';
+}
+
+/* =========================================================
+ * 8. イベント
+ * ========================================================= */
+async function copyText(text, fallbackId) {
+  try { await navigator.clipboard.writeText(text); return true; } catch (e) {
+    const ta = fallbackId ? document.getElementById(fallbackId) : null;
+    if (!ta) return false;
+    ta.focus(); ta.select();
+    try { return document.execCommand('copy'); } catch (e2) { return false; }
+  }
+}
+function downloadText(filename, text, type) {
+  const blob = new Blob([text], { type });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url; link.download = filename;
+  document.body.appendChild(link); link.click(); link.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+function currentPromise() {
+  const p = state.promise;
+  const when = p.when === 'custom' ? p.custom : p.when;
+  return when ? { when, scope: p.scope, tag: state.result.d.primary, text: promiseText(state.result.d.primary, p.scope, state.a) } : null;
+}
+function promiseCopyText(p) {
+  const act = ACTIONS[p.tag];
+  return `【生物の約束】\n日時: ${fmtWhen(p.when)}\nやること: ${p.text}\n終わりの目印: ${act ? act.goal : ''}`;
+}
+function setStatus(id, msg) {
+  const el = document.getElementById(id);
+  if (el) el.textContent = msg;
+}
+
+app.addEventListener('click', async (e) => {
+  const btn = e.target.closest('[data-action]');
+  if (!btn || btn.disabled) return;
+  const act = btn.dataset.action;
+
+  if (act === 'start') {
+    state.a = newAnswers();
+    state.a.misses.push(newMiss());
+    state.saved = false; state.savedId = ''; state.savedPromise = null;
+    state.showAi = false; state.includeMemo = false; state.followupMsg = '';
+    goto(STEPS[0]);
+  } else if (act === 'back') {
+    const i = STEPS.indexOf(state.step);
+    goto(i <= 0 ? 'intro' : STEPS[i - 1]);
+  } else if (act === 'next') {
+    const err = validate(state.step);
+    if (err) {
+      state.error = err;
+      render();
+      const el = app.querySelector('.error');
+      if (el) el.scrollIntoView({ block: 'center' });
+      return;
+    }
+    const i = STEPS.indexOf(state.step);
+    if (i === STEPS.length - 1) {
+      const a = state.a;
+      const history = loadHistory();
+      const same = a.univ.trim() ? history.filter((h) => normUniv(h.univ) === normUniv(a.univ)) : [];
+      const prev = same.length ? same[same.length - 1] : (history[history.length - 1] || null);
+      state.result = { d: decide(a), prev, prevSame: same.length > 0 };
+      state.saved = false; state.savedId = ''; state.savedPromise = null; state.promiseError = '';
+      state.promise = { when: '', custom: '', scope: defaultScope(a, prev) };
+      goto('result');
+    } else {
+      goto(STEPS[i + 1]);
+    }
+  } else if (act === 'add-miss') {
+    if (state.a.misses.length < 3) {
+      state.a.misses.push(newMiss());
+      state.error = '';
+      render({ focusSelector: `[data-miss="${state.a.misses.length - 1}"]` });
+    }
+  } else if (act === 'remove-miss') {
+    state.a.misses.splice(Number(btn.dataset.index), 1);
+    state.error = '';
+    render();
+  } else if (act === 'save') {
+    const entry = makeEntry(state.a, state.result.d, null);
+    const history = loadHistory();
+    history.push(entry);
+    const ok = saveHistory(history);
+    if (ok) { state.savedId = entry.id; state.saved = true; }
+    render();
+    setStatus('save-status', ok ? 'この端末に保存しました。' : '保存できませんでした(ブラウザの設定で保存が禁止されているかもしれません)。');
+  } else if (act === 'promise') {
+    const p = currentPromise();
+    if (!p) { state.promiseError = 'いつやるか、選んでください(「自分で決める」の場合は日時も入れてください)。'; render(); return; }
+    state.promiseError = '';
+    let ok;
+    if (state.savedId) {
+      ok = updateEntry(state.savedId, { promise: p });
+    } else {
+      const entry = makeEntry(state.a, state.result.d, p);
+      const history = loadHistory();
+      history.push(entry);
+      ok = saveHistory(history);
+      if (ok) { state.savedId = entry.id; state.saved = true; }
+    }
+    if (ok) state.savedPromise = p;
+    else state.promiseError = '保存できませんでした(ブラウザの設定で保存が禁止されているかもしれません)。';
+    render({ focusTop: false });
+    if (ok) { const el = document.getElementById('pc'); if (el) el.scrollIntoView({ block: 'start' }); }
+  } else if (act === 'ics') {
+    downloadText('seibutsu-yakusoku.ics', buildIcs(state.savedPromise), 'text/calendar;charset=utf-8');
+    setStatus('promise-status', 'カレンダー用のファイルを保存しました。開くと、カレンダーに入ります。開けないときは、「文章をコピー」を使ってください。');
+  } else if (act === 'copy-promise') {
+    const ok = await copyText(promiseCopyText(state.savedPromise), null);
+    setStatus('promise-status', ok ? 'コピーしました。メモやメッセージに貼って残せます。' : 'コピーできませんでした。画面のスクリーンショットを使ってください。');
+  } else if (act === 'clear') {
+    if (window.confirm('この端末に保存した結果を、全部消します。よろしいですか?')) {
+      clearKey(KEY_HISTORY);
+      state.saved = false; state.savedId = ''; state.savedPromise = null;
+      if (state.result) state.result = { d: state.result.d, prev: null, prevSame: false };
+      render();
+    }
+  } else if (act === 'toggle-ai') {
+    state.showAi = !state.showAi;
+    render();
+  } else if (act === 'copy') {
+    const ok = await copyText(document.getElementById('prompt-text').value, 'prompt-text');
+    setStatus('copy-status', ok ? 'コピーしました。AIの入力欄に貼ってください。' : 'コピーできませんでした。文章を選んで、手動でコピーしてください。');
+  } else if (act === 'restart') {
+    state.a = newAnswers();
+    state.followup = { status: '', reason: '' };
+    goto('intro');
+  } else if (act === 'record-followup') {
+    const f = state.followup;
+    if (!f.status) { state.followupError = 'どうだったか、選んでください。'; render(); return; }
+    if ((f.status === 'partial' || f.status === 'none') && !f.reason) { state.followupError = '理由を選んでください。'; render(); return; }
+    updateEntry(btn.dataset.id, { followup: { status: f.status, reason: f.reason || '', date: new Date().toLocaleDateString('ja-JP') } });
+    state.followupMsg = f.status === 'done'
+      ? 'やりきりました。それがいちばん大事です。次の赤本で、効果を確かめましょう。'
+      : (f.status === 'partial' ? 'できた分だけで十分です。次は「最初の一歩」だけの約束にして、確実に続けましょう。' : '') + ' ' + (FU_REASON_MSG[f.reason] || '');
+    state.followupMsg = state.followupMsg.trim();
+    state.followup = { status: '', reason: '' };
+    state.followupError = '';
+    render({ focusTop: true });
+  } else if (act === 'open-cards') {
+    state.cardsFrom = state.cardsFrom || 'intro';
+    state.review = null;
+    goto('cards');
+  } else if (act === 'open-cards-from-result') {
+    state.cardsFrom = 'result';
+    goto('cards');
+  } else if (act === 'back-from-cards') {
+    const to = state.cardsFrom === 'result' && state.result ? 'result' : 'intro';
+    state.cardsFrom = 'intro';
+    goto(to);
+  } else if (act === 'add-card') {
+    const q = state.cardForm.q.trim();
+    const ans = state.cardForm.a.trim();
+    if (!q || !ans) { state.cardError = '問いと答えの両方を入れてください。'; render(); return; }
+    const cards = loadCards();
+    if (cards.length >= 100) { state.cardError = 'カードは100枚までです。'; render(); return; }
+    cards.push({ id: newId('c'), q, a: ans, streak: 0, lastAt: 0, created: Date.now() });
+    saveCards(cards);
+    state.cardForm = { q: '', a: '' };
+    state.cardError = '';
+    render({ focusSelector: '[data-card="q"]' });
+  } else if (act === 'remove-card') {
+    saveCards(loadCards().filter((c) => c.id !== btn.dataset.id));
+    render();
+  } else if (act === 'clear-cards') {
+    if (window.confirm('用語カードを全部消します。よろしいですか?')) { clearKey(KEY_CARDS); render(); }
+  } else if (act === 'start-review') {
+    const due = loadCards().filter(cardIsDue);
+    if (!due.length) return;
+    state.review = { ids: due.map((c) => c.id), i: 0, shown: false, ok: 0, ng: 0, done: false };
+    goto('review');
+  } else if (act === 'show-answer') {
+    state.review.shown = true;
+    render({ focusSelector: '[data-action="card-ok"]' });
+  } else if (act === 'card-ok' || act === 'card-ng') {
+    const r = state.review;
+    const cards = loadCards();
+    const c = cards.find((x) => x.id === r.ids[r.i]);
+    if (c) {
+      if (act === 'card-ok') { c.streak = Math.min((c.streak || 0) + 1, 3); r.ok += 1; }
+      else { c.streak = 0; r.ng += 1; r.ids.push(c.id); }
+      c.lastAt = Date.now();
+      saveCards(cards);
+    }
+    r.i += 1; r.shown = false;
+    if (r.i >= r.ids.length) r.done = true;
+    render({ focusTop: true });
+  } else if (act === 'finish-review') {
+    state.review.done = true;
+    render({ focusTop: true });
+  }
+});
+
+app.addEventListener('change', (e) => {
+  const t = e.target;
+  if (t.matches('[data-bind]')) {
+    state.a[t.dataset.bind] = t.value;
+    state.error = '';
+  } else if (t.matches('[data-multi]')) {
+    const key = t.dataset.multi;
+    const set = new Set(state.a[key]);
+    if (t.checked) set.add(t.value); else set.delete(t.value);
+    state.a[key] = FIELDS.filter((f) => set.has(f));
+  } else if (t.matches('[data-miss]:not([data-text-miss])')) {
+    const m = state.a.misses[Number(t.dataset.miss)];
+    const key = t.dataset.key;
+    m[key] = t.value;
+    state.error = '';
+    if (key === 'form') { m.reason = ''; render({ focusSelector: radioSel(t) }); }
+  } else if (t.matches('[data-pr]')) {
+    state.promise[t.dataset.pr] = t.value;
+    state.promiseError = '';
+    render({ focusSelector: radioSel(t) });
+  } else if (t.matches('[data-fu]')) {
+    state.followup[t.dataset.fu] = t.value;
+    state.followupError = '';
+    if (t.dataset.fu === 'status') { state.followup.reason = ''; render({ focusSelector: radioSel(t) }); }
+  } else if (t.id === 'include-memo') {
+    state.includeMemo = t.checked;
+    const ta = document.getElementById('prompt-text');
+    if (ta) ta.value = buildPrompt(state.a, state.result.d, state.includeMemo, state.result.prev);
+  }
+});
+
+app.addEventListener('input', (e) => {
+  const t = e.target;
+  if (t.matches('[data-text]')) state.a[t.dataset.text] = t.value;
+  else if (t.matches('[data-text-miss]')) state.a.misses[Number(t.dataset.miss)][t.dataset.key] = t.value;
+  else if (t.matches('[data-pr-custom]')) state.promise.custom = t.value;
+  else if (t.matches('[data-card]')) state.cardForm[t.dataset.card] = t.value;
+});
+
+render();
+})();
+</script>
+</body>
+</html>
