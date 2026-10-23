@@ -6,6 +6,7 @@
 |---|---|
 | `v3.html` | **現行版**(配布用 URL は基本これ) |
 | `v2.html` / `index.html` | 比較用の旧版 |
+| `akahon-icon-*.png` / `akahon-title-header.png` | ホーム画面アイコンとヘッダー用タイトル |
 
 ## 公開 URL(GitHub Pages)
 
