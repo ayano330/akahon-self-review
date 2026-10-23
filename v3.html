@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex">
-<title>赤本 自己分析ツール(生物)試作版 v3</title>
+<title>赤本セルフチェック(生物)試作版 v3</title>
 <style>
 :root {
   --bg: #f6f8f7;
@@ -121,10 +121,89 @@ table.data th, table.data td { border-bottom: 1px solid var(--border); padding: 
 .stat { border: 1px solid var(--border); border-radius: 8px; padding: 8px 12px; }
 .stat b { font-size: 1.4rem; display: block; line-height: 1.3; }
 .rec-item { border: 1px solid var(--border); border-radius: var(--radius); padding: 12px; }
+
+[hidden] { display: none !important; }
+input.invalid { border-color: var(--danger); background: #fdecea; }
+.icon-btn { font: inherit; width: 44px; height: 44px; flex: none; display: inline-flex; align-items: center; justify-content: center; border: 2px solid var(--border); border-radius: var(--radius); background: var(--card); color: var(--muted); cursor: pointer; padding: 0; }
+.icon-btn:hover { border-color: var(--primary); color: var(--primary); }
+.icon-btn.danger:hover { border-color: var(--danger); color: var(--danger); }
+.icon-btn.small { width: 36px; height: 36px; border-width: 1px; border-radius: 8px; }
+.icon-btn svg, .btn svg { width: 20px; height: 20px; flex: none; }
+.icon-btn.small svg { width: 18px; height: 18px; }
+.btn .ic { display: inline-flex; align-items: center; gap: 6px; }
+.univ-row { display: flex; gap: 8px; align-items: stretch; }
+.univ-row .univ-btn { flex: 1; min-width: 0; }
+.fields-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.suggest { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.suggest .chip-btn { font: inherit; min-height: 40px; padding: 4px 14px; border: 2px solid var(--primary); border-radius: 999px; background: var(--primary-soft); color: var(--primary); font-weight: 700; cursor: pointer; }
+table.data td.num, table.data th.num { text-align: right; white-space: nowrap; }
+table.data td.act { width: 44px; text-align: right; padding: 2px 4px; }
+.sr-only { position: absolute; left: -9999px; width: 1px; height: 1px; overflow: hidden; }
+
+/* 約束カード: 罫線ノートの切れ端。ほかの画面と違う、手書きの雰囲気で目を引く */
+.scrap-wrap {
+  --hand: "Klee", "Klee One", "UD Digi Kyokasho N-R", "UD デジタル 教科書体 N-R", "HG教科書体", "Hiragino Maru Gothic ProN", "Yu Gothic UI", sans-serif;
+  position: relative; margin: 14px 6px 10px; transform: rotate(-1.2deg);
+  filter: drop-shadow(2px 4px 4px rgba(0, 0, 0, 0.22));
+}
+.scrap-wrap::before {
+  content: ""; position: absolute; top: -11px; left: 50%; width: 88px; height: 22px; margin-left: -44px; z-index: 1;
+  background: rgba(255, 213, 79, 0.7); transform: rotate(3deg);
+}
+.scrap {
+  position: relative; padding: 0 16px 2rem 3.4rem; color: #232a4d;
+  font-family: var(--hand); font-weight: 600; font-size: 1.05rem; line-height: 2rem;
+  background-color: #fffbe8;
+  background-image:
+    linear-gradient(90deg, transparent 2.7rem, #e57373 2.7rem, #e57373 calc(2.7rem + 2px), transparent calc(2.7rem + 2px)),
+    repeating-linear-gradient(180deg, transparent 0, transparent calc(2rem - 1px), #b3d1ea calc(2rem - 1px), #b3d1ea 2rem);
+  clip-path: polygon(0 0, 100% 0, 100% calc(100% - 6px), 96% calc(100% - 1px), 92% calc(100% - 7px), 88% 100%, 84% calc(100% - 5px), 80% calc(100% - 1px), 76% calc(100% - 6px), 72% 100%, 68% calc(100% - 4px), 64% calc(100% - 7px), 60% calc(100% - 1px), 56% calc(100% - 5px), 52% 100%, 48% calc(100% - 6px), 44% calc(100% - 2px), 40% calc(100% - 7px), 36% 100%, 32% calc(100% - 4px), 28% calc(100% - 7px), 24% calc(100% - 1px), 20% calc(100% - 5px), 16% 100%, 12% calc(100% - 6px), 8% calc(100% - 2px), 4% calc(100% - 6px), 0 100%);
+}
+.scrap p { margin: 0; line-height: 2rem; overflow-wrap: anywhere; }
+.scrap-head { display: flex; align-items: center; }
+.scrap-head span { display: inline-block; line-height: 1.5rem; padding: 0 14px; font-size: 1.05rem; color: #c62828; border: 2px solid #c62828; border-radius: 52% 48% 55% 45% / 55% 45% 55% 45%; transform: rotate(-3deg); }
+.scrap-when { font-size: 1.4rem; color: #c62828; text-decoration: underline wavy #c62828; text-underline-offset: 5px; text-decoration-thickness: 1.5px; transform: rotate(-0.6deg); }
+.scrap-body { transform: rotate(0.3deg); }
+.scrap-goal { font-size: 0.95rem; }
+.scrap-goal mark { background: linear-gradient(transparent 55%, #fff176 55%); color: inherit; }
+.stamp { position: absolute; right: 4px; bottom: -14px; width: 112px; height: 112px; transform: rotate(-14deg); mix-blend-mode: multiply; opacity: 0.9; pointer-events: none; }
+.stamp svg, .fight svg { width: 100%; height: 100%; display: block; }
+.stamp.pop { animation: stamp-in 0.55s cubic-bezier(0.2, 1.4, 0.4, 1) both; }
+@keyframes stamp-in {
+  0% { transform: rotate(-32deg) scale(2.6); opacity: 0; }
+  55% { opacity: 0.95; }
+  100% { transform: rotate(-14deg) scale(1); opacity: 0.9; }
+}
+.fight { position: absolute; right: -4px; bottom: -6px; width: 168px; height: 92px; transform: rotate(-8deg); pointer-events: none; }
+.fight text { font-family: var(--hand); }
+.fight.pop { animation: fight-in 0.5s ease-out both; }
+@keyframes fight-in {
+  0% { transform: rotate(-7deg) scale(0.4); opacity: 0; }
+  100% { transform: rotate(-7deg) scale(1); opacity: 1; }
+}
+@media (prefers-reduced-motion: reduce) { .stamp.pop, .fight.pop { animation: none; } }
+
+/* 下のタブバー(戻る / ホーム / 約束)。親指で押せる位置 */
+.has-tabbar main { padding-bottom: calc(96px + env(safe-area-inset-bottom)); }
+#tabbar { position: fixed; left: 0; right: 0; bottom: 0; z-index: 10; background: var(--card); border-top: 1px solid var(--border); padding-bottom: env(safe-area-inset-bottom); }
+.tabbar-in { max-width: 640px; margin: 0 auto; display: flex; }
+.tab { font: inherit; position: relative; flex: 1; min-height: 60px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; border: 0; background: none; color: var(--muted); font-size: 0.75rem; font-weight: 700; cursor: pointer; padding: 6px 4px; }
+.tab svg { width: 24px; height: 24px; }
+.tab.on { color: var(--primary); background: var(--primary-soft); }
+.tab:disabled { opacity: 0.35; cursor: not-allowed; }
+.tab-badge { position: absolute; top: 4px; left: 50%; margin-left: 6px; min-width: 18px; height: 18px; padding: 0 5px; border-radius: 999px; background: var(--danger); color: #fff; font-size: 0.7rem; line-height: 18px; text-align: center; }
+
+/* 約束ページの絞り込み */
+.seg { display: flex; gap: 6px; }
+.seg-btn { font: inherit; flex: 1; min-height: 44px; padding: 6px 4px; border: 2px solid var(--border); border-radius: var(--radius); background: var(--card); color: var(--fg); font-weight: 700; cursor: pointer; }
+.seg-btn[aria-pressed="true"] { border-color: var(--primary); background: var(--primary-soft); color: var(--primary); }
+.seg-btn .seg-n { font-weight: 400; margin-left: 4px; }
 </style>
 </head>
 <body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false"><defs><filter id="ink-rough" x="-5%" y="-5%" width="110%" height="110%"><feTurbulence type="fractalNoise" baseFrequency="0.8" numOctaves="2" seed="3" result="n"/><feDisplacementMap in="SourceGraphic" in2="n" scale="2.2"/></filter></defs></svg>
 <main id="app"></main>
+<nav id="tabbar" aria-label="メニュー" hidden></nav>
 <noscript>このツールの利用にはJavaScriptが必要です。</noscript>
 
 <script>
@@ -137,18 +216,18 @@ table.data th, table.data td { border-bottom: 1px solid var(--border); padding: 
 const KEY_UNIVS = 'akahon-self-review:v3:univs';
 const KEY_RECORDS = 'akahon-self-review:v3:records';
 const KEY_PROMISES = 'akahon-self-review:v3:promises';
-const KEY_CARDS = 'akahon-self-review:cards:v1';
-/* v1・v2 の保存データ(v3 は読み込まない。「全部消す」のときだけ消す) */
+const KEY_WELCOME = 'akahon-self-review:v3:welcomed';
+const KEY_SCHEDNAMES = 'akahon-self-review:v3:schednames';
+/* v1・v2 の保存データ、削除した用語カードのデータ(v3 は読み込まない。「全部消す」のときだけ消す) */
 const KEY_OLD = 'akahon-self-review:v1';
+const KEY_CARDS = 'akahon-self-review:cards:v1';
 
 const MAX_UNIVS = 20;
 const MAX_SCHEDS = 5;
+const MAX_SCHEDNAMES = 20;
+/* カレンダー(.ics)機能。Android での動作確認ができるまで見送り。true にすると画面に出る */
+const ENABLE_CALENDAR = false;
 
-const FIELDS = [
-  '細胞', '代謝(呼吸・光合成)', '遺伝情報(DNA・タンパク質合成)', '遺伝(メンデル・連鎖)',
-  '発生', '動物の反応(神経・筋)', '体内環境(恒常性・免疫)', '植物の反応',
-  '生態・個体群', '進化・系統'
-];
 const ROUNDS = [
   { id: '1', label: '1回目' }, { id: '2', label: '2回目' }, { id: '3', label: '3回目以降' }
 ];
@@ -165,7 +244,6 @@ const LOSS = [
 ];
 const LOSS_WEIGHT = { large: 3, mid: 2, small: 1 };
 const TIME_WEIGHT = { ok: 0, tight: 1, unfinished: 3 };
-const UNLEARNED_WEIGHT = 3;
 
 const TAGS = [
   { id: 'unlearned', label: '未習・未対策' },
@@ -207,13 +285,13 @@ const FORMS = [
   ] }
 ];
 
-/* first = 2分でできる「最初の一歩」。{field} は未習分野名に置き換わる */
+/* first = 2分でできる「最初の一歩」 */
 const ACTIONS = {
   unlearned: {
     title: '未習分野を1つ選んで、基礎を一周する',
     short: '未習分野を1つ選んで、教科書と基礎問題を一周する',
     why: '習っていない範囲は、赤本を解いても点になりにくいからです。先に基礎を固めるほうが、次の赤本で伸びます。',
-    first: '教科書の「{field}」の章を開いて、見出しを声に出して読む',
+    first: '教科書の、まだ習っていない分野の章を開いて、見出しを声に出して読む',
     steps: ['教科書の太字の用語を読む', '基礎問題集の同じ分野を解く', '間違えた問題にチェックをつける'],
     amount: '1分野を数日', goal: '基礎問題の正答率が8割になる'
   },
@@ -229,8 +307,8 @@ const ACTIONS = {
     title: '間違えた用語を覚え直す',
     short: '間違えた用語を10個書き出して、毎日10分見直す',
     why: '知識がないと、考える以前に手が止まります。ここは地道に覚える分だけ点になります。',
-    first: '間違えた用語を1つ、「用語カード」に登録する',
-    steps: ['間違えた用語を10個書き出す(用語カードに登録)', '答えを隠して、言えるか確かめる', '3日後にもう一度テストする'],
+    first: '間違えた用語を1つ、ノートに書き出す',
+    steps: ['間違えた用語を10個、ノートに書き出す', '答えを隠して、言えるか確かめる', '3日後にもう一度テストする'],
     amount: '毎日10分', goal: '10個すべて言える'
   },
   reasoning: {
@@ -299,14 +377,11 @@ const FU_REASONS = [
 ];
 const FU_REASON_MSG = {
   time: '時間が取れなかったなら、次は2分の「最初の一歩」だけ約束しましょう。',
-  forgot: '忘れていたなら、次は約束を必ずカレンダーに入れましょう。',
+  forgot: '忘れていたなら、次は約束カードをスクリーンショットして、待ち受けにしておきましょう。',
   hard: '難しかったなら、量を減らすより、先生に聞く約束にするのがおすすめです。',
   mood: 'やる気が出ない日は誰にでもあります。タイマー2分で、最初の一歩だけやってみましょう。',
   other: 'うまくいかなかった理由に気づけたことが前進です。先生にも話してみてください。'
 };
-
-const CARD_INTERVAL_DAYS = [0, 1, 3, 7];
-const DAY_MS = 86400000;
 
 /* 約束の状態。open=確認待ち / held=保留中 / released=手放した / replaced=再約束した */
 const PROMISE_STATUS = {
@@ -347,7 +422,6 @@ function calcScores(a) {
     if (r) scores[r.tag] += LOSS_WEIGHT[m.loss] || 0;
   });
   scores.timeshort += TIME_WEIGHT[a.time] || 0;
-  if (a.unlearned.length > 0) scores.unlearned += UNLEARNED_WEIGHT;
   return scores;
 }
 
@@ -379,13 +453,12 @@ const normSched = (s) => {
 };
 
 /* 約束の内容(文章) */
-function firstText(tag, a) {
-  const field = a.unlearned[0] || '未習の分野';
-  return ACTIONS[tag].first.replace('{field}', field);
+function firstText(tag) {
+  return ACTIONS[tag].first;
 }
 function promiseText(tag, scope, a) {
   const act = ACTIONS[tag];
-  if (scope === 'first') return firstText(tag, a);
+  if (scope === 'first') return firstText(tag);
   if (scope === 'step1') return `${act.steps[0]}。目安は「${act.amount}」`;
   return `${act.title}:${act.steps.join(' → ')}。目安は「${act.amount}」`;
 }
@@ -479,9 +552,6 @@ function buildIcs(p) {
   return lines.join('\r\n');
 }
 
-/* 用語カード */
-const cardIsDue = (c) => !c.lastAt || (Date.now() - c.lastAt) >= CARD_INTERVAL_DAYS[Math.min(c.streak || 0, 3)] * DAY_MS;
-
 /* =========================================================
  * 3. 保存(この端末のブラウザ内だけ)
  * ========================================================= */
@@ -505,8 +575,31 @@ const loadRecs = () => readJson(KEY_RECORDS).sort((x, y) => x.ts - y.ts);
 const saveRecs = (arr) => writeJson(KEY_RECORDS, arr);
 const loadProms = () => readJson(KEY_PROMISES);
 const saveProms = (arr) => writeJson(KEY_PROMISES, arr);
-const loadCards = () => readJson(KEY_CARDS);
-const saveCards = (arr) => writeJson(KEY_CARDS, arr);
+
+const isWelcomed = () => { try { return localStorage.getItem(KEY_WELCOME) === '1'; } catch (e) { return true; } };
+const markWelcomed = () => { try { localStorage.setItem(KEY_WELCOME, '1'); } catch (e) { /* noop */ } };
+
+/* 入試日程の名前を、この端末に覚えておく(次回から候補に出す)。表記ゆれ(T / T日程 / Ｔ)は同じとみなす */
+function rememberSched(name) {
+  const n = String(name || '').trim();
+  if (!n) return;
+  const list = readJson(KEY_SCHEDNAMES).filter((x) => typeof x === 'string');
+  if (list.some((x) => normSched(x) === normSched(n))) return;
+  list.unshift(n);
+  writeJson(KEY_SCHEDNAMES, list.slice(0, MAX_SCHEDNAMES));
+}
+/* 日程名の候補。覚えてある名前と、登録済みの大学の日程名。入力中なら、近いものだけ */
+function schedCandidates(typed) {
+  const names = []; const seen = new Set();
+  const add = (n) => {
+    const k = normSched(n);
+    if (typeof n === 'string' && n && !seen.has(k)) { seen.add(k); names.push(n); }
+  };
+  readJson(KEY_SCHEDNAMES).forEach(add);
+  loadUnivs().forEach((u) => u.scheds.forEach((s) => add(s.name)));
+  const q = normSched(typed);
+  return q ? names.filter((n) => normSched(n).includes(q) && normSched(n) !== q) : names;
+}
 
 const getUniv = (id) => loadUnivs().find((u) => u.id === id);
 function updateUniv(id, patch) {
@@ -533,19 +626,12 @@ function updateProm(id, patch) {
 }
 
 /* 日程を確定する。同じ名前(表記ゆれ込み)があればそれを使い、なければ追加する */
-function effectiveSchedMode(univ, a) {
-  if (univ.scheds.length) return a.schedMode;
-  return a.schedNew.trim() ? '__new' : '__none';
-}
 function matchSched(univ, name) {
   const key = normSched(name);
   return univ.scheds.find((s) => normSched(s.name) === key);
 }
 function resolveSched(univ, a) {
-  const mode = effectiveSchedMode(univ, a);
-  if (mode === '__none' || !mode) return '';
-  if (mode !== '__new') return mode;
-  const name = a.schedNew.trim();
+  const name = a.sched.trim();
   if (!name) return '';
   const hit = matchSched(univ, name);
   if (hit) return hit.id;
@@ -583,10 +669,9 @@ function buildPrompt(a, d, includeMemo, prevProm) {
   L.push('');
   L.push('【診断結果(この優先順位は変えないでください)】');
   const roundLabel = (ROUNDS.find((r) => r.id === a.round) || {}).label || '';
-  L.push(`- 赤本: ${roundLabel}、得点 ${a.score}/${a.full}(${pct(a.score, a.full)}%)`);
+  L.push(`- 赤本: ${roundLabel}、全${a.full}問中 ${a.score}問正解(${pct(a.score, a.full)}%)`);
   L.push(`- 最優先の課題: ${d.primary === 'stable' ? '(はっきりした課題なし)' : tagLabel(d.primary)}`);
   if (d.secondary) L.push(`- 次点の課題: ${tagLabel(d.secondary)}`);
-  L.push(`- 未習・自信のない分野: ${a.unlearned.length ? a.unlearned.join('、') : 'なし'}`);
   L.push(`- 時間配分: ${(TIMES.find((t) => t.id === a.time) || {}).label || ''}`);
   if (a.misses.length) {
     L.push('- 失点した設問:');
@@ -615,14 +700,16 @@ function buildPrompt(a, d, includeMemo, prevProm) {
 /* =========================================================
  * 5. 状態
  * ========================================================= */
-const STEPS = ['basic', 'time', 'unlearned', 'misses', 'study', 'memo'];
+const STEPS = ['basic', 'time', 'misses', 'study', 'memo'];
+/* score = 正答数、full = 全問題数(保存データの項目名は v3 のまま) */
 const newAnswers = () => ({
-  round: '', year: '', schedMode: '', schedNew: '', score: '', full: '',
-  time: '', unlearned: [], misses: [], study: '', memo: ''
+  round: '', year: '', sched: '', score: '', full: '',
+  time: '', misses: [], study: '', memo: ''
 });
 const newMiss = () => ({ label: '', form: '', reason: '', loss: '' });
 const newWhenState = (extra) => Object.assign({ whenOpt: '', date: '', time: '', text: '', base: '', edited: false }, extra);
 
+const UNIV_SUFFIX = '大学';
 const state = {
   step: 'intro',
   started: false,
@@ -632,6 +719,12 @@ const state = {
   result: null,
   saved: false,
   savedId: '',
+  saveFailed: false,
+  stampedId: '',
+  promFilter: 'todo',
+  promMsg: '',
+  fuOpenId: '',
+  holdFrom: '',
   savedPromise: null,
   promise: newWhenState({ scope: 'first' }),
   promiseError: '',
@@ -641,17 +734,14 @@ const state = {
   followupMsg: '',
   followupError: '',
   setDateError: '',
-  univForm: { name: '', target: '' },
+  univForm: { name: UNIV_SUFFIX, target: '' },
   univError: '',
+  univErrors: {},
   targetEdit: null,
   targetError: '',
   repromise: null,
   repromiseError: '',
-  holdMsg: '',
-  cardForm: { q: '', a: '' },
-  cardError: '',
-  cardsFrom: 'intro',
-  review: null
+  holdMsg: ''
 };
 
 /* =========================================================
@@ -763,24 +853,84 @@ function chartHtml(model, target) {
   }).join('');
   const xl = years.map((yr) => `<text x="${x(yr)}" y="${H - B + 16}" text-anchor="middle" font-size="10" fill="#55645c">${yr}</text>`).join('');
   const desc = series.map((s) => (s.name ? s.name + ': ' : '') + s.points.map((p) => p.year + '年は' + p.v + '%').join('、')).join('。');
-  return `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="得点率の推移。${esc(desc)}${target != null ? '。目標は' + target + '%' : ''}">${grid}${tl}${body}${xl}</svg>`;
+  return `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="正答率の推移。${esc(desc)}${target != null ? '。目標は' + target + '%' : ''}">${grid}${tl}${body}${xl}</svg>`;
 }
 
 function legendHtml(series) {
   if (series.length === 1 && !series[0].name) return '';
   return `<div class="legend" aria-label="日程の凡例">${series.map((s) => (
-    `<span class="item"><svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true">${markerSvg(s.style.shape, 8, 8, s.style.color, false, 4)}</svg>${esc(s.name || '得点率')}</span>`
+    `<span class="item"><svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true">${markerSvg(s.style.shape, 8, 8, s.style.color, false, 4)}</svg>${esc(s.name || '正答率')}</span>`
   )).join('')}</div>`;
 }
 
-function seriesTableHtml(model) {
-  const { series, years } = model;
-  const head = series.map((s) => `<th>${esc(s.name || '得点率')}</th>`).join('');
-  const rows = years.map((yr) => `<tr><td>${yr}年</td>${series.map((s) => {
-    const p = s.points.find((q) => q.year === yr);
-    return `<td>${p ? p.v + '%' + (p.draft ? '(未保存)' : '') : '—'}</td>`;
-  }).join('')}</tr>`).join('');
-  return `<table class="data"><thead><tr><th>年度</th>${head}</tr></thead><tbody>${rows}</tbody></table>`;
+/* アイコン(文字を使わないので、aria-label はボタン側につける) */
+const ICON_PEN = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>';
+const ICON_TRASH = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18"/><path d="M8 6V4h8v2"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/></svg>';
+
+/* 解いた赤本の一覧(新しい年度が上)。同じ年度なら、新しく記録したものが上 */
+function recordTableHtml(univ, recs, draft, deletable) {
+  const rows = recs.map((r) => {
+    const s = univ.scheds.find((x) => x.id === r.schedId);
+    return { year: r.year, sched: s ? s.name : '', score: r.score, full: r.full, id: r.id, draft: false, ts: r.ts };
+  });
+  if (draft) rows.push({ year: draft.year, sched: draft.schedName, score: draft.score, full: draft.full, id: '', draft: true, ts: Infinity });
+  rows.sort((x, y) => (y.year - x.year) || (y.ts - x.ts));
+  const hasSched = rows.some((r) => r.sched);
+  return `<table class="data">
+    <thead><tr><th>年度</th>${hasSched ? '<th>入試日程</th>' : ''}<th class="num">正答/全問</th><th class="num">正答率</th>${deletable ? '<th><span class="sr-only" style="position:absolute;left:-9999px">削除</span></th>' : ''}</tr></thead>
+    <tbody>${rows.map((r) => `<tr>
+      <td>${r.year}年</td>${hasSched ? `<td>${esc(r.sched)}</td>` : ''}
+      <td class="num">${r.score}/${r.full}</td>
+      <td class="num"><strong>${pct(r.score, r.full)}%</strong>${r.draft ? '<br><span class="muted">(未保存)</span>' : ''}</td>
+      ${deletable ? `<td class="act">${r.draft ? '' : `<button class="icon-btn small danger" data-action="remove-record" data-id="${esc(r.id)}" aria-label="${r.year}年${r.sched ? esc(r.sched) : ''}の記録を削除">${ICON_TRASH}</button>`}</td>` : ''}
+    </tr>`).join('')}</tbody></table>`;
+}
+
+/* --- 約束カード(ノートの切れ端。達成したら桜の「よくできました」スタンプ) --- */
+const SAKURA_PETALS = [0, 72, 144, 216, 288].map((deg) => `<path transform="rotate(${deg})" d="M0 0 C-9 -7 -10 -21 -3.5 -25 L0 -21 L3.5 -25 C10 -21 9 -7 0 0Z"/>`).join('');
+const STAMP_SVG = `<svg viewBox="0 0 120 120" role="img" aria-label="よくできました">
+  <g fill="none" stroke="#d6336c" stroke-linecap="round" filter="url(#ink-rough)">
+    <circle cx="60" cy="60" r="56" stroke-width="4"/>
+    <circle cx="60" cy="60" r="49" stroke-width="1.5"/>
+    <g transform="translate(60 45)" fill="#f9a8c4" stroke-width="1.6">${SAKURA_PETALS}</g>
+    <circle cx="60" cy="45" r="2.8" fill="#d6336c" stroke="none"/>
+  </g>
+  <text x="60" y="89" text-anchor="middle" font-size="14" font-weight="700" fill="#d6336c" textLength="74" lengthAdjust="spacingAndGlyphs" filter="url(#ink-rough)">よくできました</text>
+</svg>`;
+/* 「一部だけやった」の約束に書き込む、赤ペンの応援(1字ずつ傾けて、書きなぐりに見せる) */
+const FIGHT_SVG = `<svg viewBox="0 0 180 96" role="img" aria-label="もう少し！Fight！">
+  <g fill="#e53935" font-weight="700" filter="url(#ink-rough)">
+    <text transform="translate(14 38) rotate(-9)" font-size="27">も</text>
+    <text transform="translate(42 32) rotate(5)" font-size="24">う</text>
+    <text transform="translate(68 40) rotate(-4)" font-size="28">少</text>
+    <text transform="translate(100 34) rotate(7)" font-size="25">し</text>
+    <text transform="translate(126 28) rotate(-14)" font-size="30">！</text>
+    <text transform="translate(20 78) rotate(-6)" font-size="26" font-style="italic">F</text>
+    <text transform="translate(42 74) rotate(4)" font-size="24" font-style="italic">i</text>
+    <text transform="translate(54 80) rotate(-3)" font-size="25" font-style="italic">g</text>
+    <text transform="translate(74 76) rotate(6)" font-size="26" font-style="italic">h</text>
+    <text transform="translate(94 82) rotate(-5)" font-size="25" font-style="italic">t</text>
+    <text transform="translate(114 72) rotate(-12)" font-size="30">！</text>
+    <path d="M16 86 C56 78 108 92 164 80" fill="none" stroke="#e53935" stroke-width="3.2" stroke-linecap="round"/>
+    <path d="M28 91 C70 86 118 96 150 88" fill="none" stroke="#e53935" stroke-width="1.8" stroke-linecap="round"/>
+  </g>
+</svg>`;
+function scrapHtml(p, opts) {
+  const act = ACTIONS[p.tag];
+  const done = p.status === 'done';
+  const partial = p.status === 'partial';
+  const pop = opts && opts.animate ? ' pop' : '';
+  return `
+    <div class="scrap-wrap"${opts && opts.id ? ` id="${opts.id}"` : ''}>
+      <div class="scrap">
+        <p class="scrap-head"><span>やくそく</span></p>
+        <p class="scrap-when">${esc(fmtWhen(p.when))}</p>
+        <p class="scrap-body">${esc(p.text)}</p>
+        ${act ? `<p class="scrap-goal">めじるし: <mark>${esc(act.goal)}</mark></p>` : ''}
+      </div>
+      ${done ? `<div class="stamp${pop}">${STAMP_SVG}</div>` : ''}
+      ${partial ? `<div class="fight${pop}">${FIGHT_SVG}</div>` : ''}
+    </div>`;
 }
 
 /* --- トップ --- */
@@ -790,11 +940,8 @@ function followupHtml(p, n, total, recs, univs) {
   return `
     <section class="card card-accent stack" aria-labelledby="fu">
       <div class="row-between"><h2 id="fu">約束、どうでしたか?</h2>${total > 1 ? `<span class="muted">${n} / ${total}件</span>` : ''}</div>
-      <dl class="kv">
-        <dt>赤本</dt><dd>${esc(rec ? recLabel(rec, univs) : '')}</dd>
-        <dt>日時</dt><dd>${esc(fmtWhen(p.when))}</dd>
-        <dt>やること</dt><dd>${esc(p.text)}</dd>
-      </dl>
+      <p class="muted">${esc(rec ? recLabel(rec, univs) : '')} の赤本</p>
+      ${scrapHtml(p, {})}
       ${!p.when ? `
       <div class="row">
         <label class="field" style="flex:1;min-width:10em"><span>日付を決めておく(任意)</span>
@@ -812,90 +959,147 @@ function followupHtml(p, n, total, recs, univs) {
         ${radios('fu-reason', FU_REASONS, f.reason, 'data-fu="reason"', 'col')}
       </fieldset>` : ''}
       ${errorHtml(state.followupError)}
-      <div><button class="btn btn-primary" data-action="record-followup" data-id="${esc(p.id)}">記録する</button></div>
+      <div class="row">
+        <button class="btn btn-primary" data-action="record-followup" data-id="${esc(p.id)}">記録する</button>
+        ${state.step === 'promises' ? '<button class="btn btn-quiet" data-action="close-followup">やめる</button>' : ''}
+      </div>
     </section>`;
+}
+
+/* --- 約束ページ(未完了 / 完了 / もう少し で絞り込み) --- */
+const PROM_GROUPS = [
+  { id: 'todo', label: '未完了' },
+  { id: 'done', label: '完了' },
+  { id: 'partial', label: 'もう少し' }
+];
+/* 手放した・再約束した約束は、一覧に出さない(先生の画面には履歴として残る) */
+const promGroup = (p) => (p.status === 'open' || p.status === 'held' ? 'todo' : (p.status === 'done' ? 'done' : (p.status === 'partial' ? 'partial' : '')));
+const PROM_EMPTY = {
+  todo: '未完了の約束はありません。',
+  done: 'まだ完了した約束はありません。「やった」を記録すると、ここにスタンプが並びます。',
+  partial: '「一部だけやった」約束が、ここに並びます。'
+};
+function renderPromises() {
+  const univs = loadUnivs(); const recs = loadRecs(); const proms = loadProms();
+  const groups = { todo: [], done: [], partial: [] };
+  proms.forEach((p) => { const g = promGroup(p); if (g) groups[g].push(p); });
+  /* 未完了は、確認待ち → 保留中の順。どれも新しい約束が上 */
+  groups.todo.sort((x, y) => (x.status === y.status ? y.createdAt - x.createdAt : (x.status === 'open' ? -1 : 1)));
+  groups.done.sort((x, y) => y.createdAt - x.createdAt);
+  groups.partial.sort((x, y) => y.createdAt - x.createdAt);
+  const f = groups[state.promFilter] ? state.promFilter : 'todo';
+  const heldCount = groups.todo.filter((p) => p.status === 'held').length;
+  return `
+    <div class="stack">
+      <h1 tabindex="-1">約束</h1>
+      ${state.promMsg ? `<div class="notice" role="status">${esc(state.promMsg)}</div>` : ''}
+      <div class="seg" role="group" aria-label="約束の絞り込み">
+        ${PROM_GROUPS.map((g) => `<button class="seg-btn" data-action="prom-filter" data-id="${g.id}" aria-pressed="${f === g.id}">${g.label}<span class="seg-n">${groups[g.id].length}</span></button>`).join('')}
+      </div>
+      ${f === 'todo' && heldCount ? `
+      <section class="card stack-sm">
+        <p><strong>保留中の約束 ${heldCount}件</strong></p>
+        <p class="muted">できなかった約束は、ここに残してあります。溜まっても大丈夫です。小さくして出し直したり、手放したりできます。</p>
+        <div><button class="btn btn-sm" data-action="open-hold">保留中の約束を整える</button></div>
+      </section>` : ''}
+      ${groups[f].length === 0 ? `<p class="notice">${esc(PROM_EMPTY[f])}</p>` : ''}
+      ${groups[f].map((p) => {
+        if (p.status === 'open' && state.fuOpenId === p.id) return followupHtml(p, 1, 1, recs, univs);
+        const rec = recs.find((r) => r.id === p.recordId);
+        const reason = (FU_REASONS.find((x) => x.id === p.reason) || {}).label;
+        return `
+        <section class="stack-sm">
+          <div class="row-between"><span class="muted">${esc(rec ? recLabel(rec, univs) : '')}</span>${statusChip(p.status)}</div>
+          ${scrapHtml(p, { animate: p.id === state.stampedId })}
+          ${(p.status === 'partial' || p.status === 'held') && reason ? `<p class="muted">理由: ${esc(reason)}</p>` : ''}
+          ${p.status === 'open' ? `<div><button class="btn btn-sm" data-action="open-followup" data-id="${esc(p.id)}">どうだったか記録する</button></div>` : ''}
+        </section>`;
+      }).join('')}
+    </div>`;
 }
 
 function renderIntro() {
   const univs = loadUnivs();
   const recs = loadRecs();
   const proms = loadProms();
-  const cards = loadCards();
-  const due = cards.filter(cardIsDue).length;
   const pendings = proms.filter((p) => p.status === 'open' && isDue(p)).sort((x, y) => x.createdAt - y.createdAt);
-  const upcoming = proms.filter((p) => p.status === 'open' && !isDue(p)).sort((x, y) => (x.when < y.when ? -1 : 1));
-  const heldCount = proms.filter((p) => p.status === 'held').length;
   const hasData = univs.length || recs.length || proms.length;
   return `
     <div class="stack">
       <div><span class="badge">試作版 v3(先生の確認用)</span></div>
-      <h1 tabindex="-1">赤本 自己分析ツール(生物)</h1>
-      <p>赤本を解いたら、大学を選んで記録します。いくつか選ぶだけで、<strong>次にやることが1つ決まります。</strong></p>
+      <h1 tabindex="-1">赤本セルフチェック(生物)</h1>
+      <p>解いた赤本を、次の行動へ</p>
       ${state.followupMsg ? `<div class="notice" role="status">${esc(state.followupMsg)}</div>` : ''}
       ${pendings.length ? followupHtml(pendings[0], 1, pendings.length, recs, univs) : ''}
-      ${heldCount ? `
-      <section class="card stack-sm" aria-labelledby="hold">
-        <h2 id="hold">保留中の約束 ${heldCount}件</h2>
-        <p class="muted">できなかった約束は、ここに残してあります。溜まっても大丈夫です。小さくして出し直したり、手放したりできます。</p>
-        <div><button class="btn" data-action="open-hold">保留中の約束を見る</button></div>
-      </section>` : ''}
-      ${upcoming.length ? `
-      <section class="card stack-sm" aria-labelledby="up">
-        <h2 id="up">これからの約束</h2>
-        ${upcoming.slice(0, 3).map((p) => `
-          <div class="row-between">
-            <span><strong>${esc(fmtWhen(p.when))}</strong> ${esc(p.text)}</span>
-            <button class="btn btn-sm" data-action="ics-prom" data-id="${esc(p.id)}">カレンダーに入れる</button>
-          </div>`).join('')}
-        <p id="up-status" class="muted" role="status"></p>
-      </section>` : ''}
+      ${!pendings.length && proms.some((p) => p.status === 'open' || p.status === 'held') ? `<p class="muted">未完了の約束は、下の「約束」から見られます。</p>` : ''}
       <section class="stack-sm" aria-labelledby="univs">
         <div class="row-between">
           <h2 id="univs" style="margin:0">登録した大学</h2>
           <button class="btn btn-sm" data-action="open-add-univ" ${univs.length >= MAX_UNIVS ? 'disabled' : ''} aria-label="大学を追加する">＋ 大学を追加</button>
         </div>
         ${univs.length ? `
-        <div class="univ-list">${univs.map((u) => {
-          const mine = recs.filter((r) => r.univId === u.id);
-          const last = mine[mine.length - 1];
-          return `<button class="univ-btn" data-action="open-univ" data-id="${esc(u.id)}">
-            <strong>${esc(u.name)}</strong>
-            <span class="sub">${last ? `最新 ${last.year}年 ${pct(last.score, last.full)}%<br>${mine.length}件` : 'まだ記録なし'}</span>
-          </button>`;
-        }).join('')}</div>` : '<div class="notice">まず「＋ 大学を追加」から、志望校を登録してください。大学名をタップすると、その大学の赤本の記録とグラフが出ます。</div>'}
+        <div class="univ-list">${univs.map((u) => `
+          <div class="univ-row">
+            <button class="univ-btn" data-action="open-univ" data-id="${esc(u.id)}"><strong>${esc(u.name)}</strong></button>
+            <button class="icon-btn danger" data-action="delete-univ" data-id="${esc(u.id)}" aria-label="${esc(u.name)}を削除">${ICON_TRASH}</button>
+          </div>`).join('')}</div>` : '<p class="notice">登録された大学はありません</p>'}
       </section>
       <div class="row">
-        <button class="btn" data-action="open-cards">用語カード(${cards.length}枚${due ? `・今日の復習 ${due}枚` : ''})</button>
-        <button class="btn btn-quiet" data-action="open-teacher">先生に見せる画面</button>
+        <button class="btn btn-quiet" data-action="open-teacher">先生に見せる</button>
       </div>
-      <details class="card">
-        <summary><strong>安心して使えるように</strong></summary>
-        <ul class="plain" style="margin-top:8px">
-          <li>名前や学校名は、聞きません。志望校名と目標は、入れても、この端末の中だけです。</li>
-          <li>入力した内容は、この端末のブラウザの中だけにあります。外には送られません。</li>
-          <li>結果の保存は、自分でボタンを押したときだけです。</li>
-          <li>AIは、使わなくても結果が出ます。使いたい人だけの、おまけです。</li>
-        </ul>
-      </details>
-      ${hasData ? `
-      <div class="notice stack-sm">
-        <p>この端末に、大学 <strong>${univs.length}件</strong>・記録 <strong>${recs.length}件</strong>・約束 <strong>${proms.length}件</strong> が保存されています。友だちや家族と使う端末では、使い終わったら消してください。</p>
-        <div><button class="btn btn-danger" data-action="clear">保存したものを全部消す</button></div>
-      </div>` : ''}
+      <div class="row">
+        <button class="btn btn-quiet btn-sm" data-action="open-about">このアプリについて</button>
+        ${hasData ? '<button class="btn btn-danger btn-sm" data-action="clear">保存したものを全部消す</button>' : ''}
+      </div>
+    </div>`;
+}
+
+/* --- はじめて開いたときだけ出す画面 --- */
+const SAFETY_POINTS = [
+  '名前や学校名は、聞きません。志望校名と目標は、入れても、この端末の中だけです。',
+  '入力した内容は、この端末のブラウザの中だけにあります。外には送られません。',
+  '赤本の記録は、結果が出たときに、この端末の中に自動で保存されます。約束は、自分で「約束する」を押したときだけ保存されます。',
+  'AIは、使わなくても結果が出ます。使いたい人だけの、おまけです。',
+  '友だちや家族と使う端末では、使い終わったら、トップ画面の「保存したものを全部消す」で消してください。'
+];
+const safetyList = () => `<ul class="plain">${SAFETY_POINTS.map((s) => `<li>${esc(s)}</li>`).join('')}</ul>`;
+function renderWelcome() {
+  return `
+    <div class="stack">
+      <h1 tabindex="-1">安心して使えるように</h1>
+      ${safetyList()}
+      <div><button class="btn btn-primary" data-action="welcome-ok">OK</button></div>
+    </div>`;
+}
+/* --- このアプリについて(いつでも読み返せる) --- */
+function renderAbout() {
+  return `
+    <div class="stack">
+      <h1 tabindex="-1">このアプリについて</h1>
+      <p>赤本セルフチェック(生物)は、解いた赤本を振り返って、次の行動を決めるためのツールです。</p>
+      <h2>安心して使えるように</h2>
+      ${safetyList()}
+      <p class="muted">この提案は目安です。迷ったときは、先生に相談してください。</p>
     </div>`;
 }
 
 /* --- 大学の追加 --- */
 function renderAddUniv() {
   const f = state.univForm;
+  const er = state.univErrors || {};
   return `
     <div class="stack">
       <h1 tabindex="-1">大学を追加</h1>
       <label class="field"><span>大学名</span>
-        <input type="text" maxlength="30" placeholder="例: ○○大学" data-uf="name" value="${esc(f.name)}"></label>
-      <label class="field"><span>目標の得点率(%)(任意)</span>
-        <input type="number" inputmode="decimal" min="0" max="100" step="any" placeholder="例: 70" data-uf="target" value="${esc(f.target)}"></label>
-      <p class="muted">生物だけの合格最低点は、公表されていない大学が多いです。先生と相談して決めた目標を入れてください。あとから変えられます。大学名は、この端末の中だけに保存されます。</p>
+        <input type="text" maxlength="30" autocomplete="off" data-uf="name" class="${er.name ? 'invalid' : ''}" ${er.name ? 'aria-invalid="true"' : ''} value="${esc(f.name)}"></label>
+      <p class="muted" style="margin-top:-8px">「大学」の前に校名を入れてください(例: 東京大学なら「東京」)</p>
+      <label class="field"><span>目標の正答率(%)</span>
+        <input type="number" inputmode="numeric" min="1" max="100" step="1" placeholder="例: 70" data-uf="target" class="${er.target ? 'invalid' : ''}" ${er.target ? 'aria-invalid="true"' : ''} value="${esc(f.target)}"></label>
+      <p class="muted" style="margin-top:-8px">合格最低点などのデータが公表されていない場合は、自分の目標を入力しましょう。</p>
+      <ul class="plain muted">
+        <li>大学名は、この端末だけに保存されます</li>
+        <li>目標正答率は、あとから変更できます</li>
+      </ul>
       ${errorHtml(state.univError)}
       <div class="row-between">
         <button class="btn btn-quiet" data-action="home">もどる</button>
@@ -905,21 +1109,19 @@ function renderAddUniv() {
 }
 
 /* --- 大学の画面(赤本の軌跡) --- */
-function trendSection(univ, recs, draft, title) {
+function trendSection(univ, recs, draft, title, deletable) {
   const model = buildSeries(univ, recs, draft);
   if (!model.years.length) {
-    return `<section class="card stack-sm" aria-labelledby="tr"><h2 id="tr">${esc(title)}</h2><p class="muted">まだ記録がありません。「新規登録」から、解いた赤本を入れてください。</p>${univ.target != null ? `<p>目標: ${univ.target}%</p>` : ''}</section>`;
+    return `<section class="card stack-sm" aria-labelledby="tr"><h2 id="tr">${esc(title)}</h2><p class="muted">まだ記録がありません。「追加」から、解いた赤本を入れてください。</p></section>`;
   }
-  const single = model.series.reduce((n, s) => n + s.points.length, 0) < 2;
   return `
     <section class="card stack" aria-labelledby="tr">
       <h2 id="tr">${esc(title)}</h2>
       <div class="chart">${chartHtml(model, univ.target)}</div>
       ${legendHtml(model.series)}
       ${draft ? '<p class="muted">白抜きの印は、まだ保存していない今回の結果です。</p>' : ''}
-      ${single ? '<p class="muted">もう1回解くと、線でつながって、推移が見えます。</p>' : ''}
-      ${univ.target != null ? '' : '<p class="muted">目標の得点率を入れると、グラフに点線で出ます。</p>'}
-      <details><summary>数字で見る</summary>${seriesTableHtml(model)}</details>
+      ${univ.target != null ? '' : '<p class="muted">目標の正答率を入れると、グラフに点線で出ます。</p>'}
+      ${recordTableHtml(univ, recs, draft, !!deletable)}
     </section>`;
 }
 
@@ -930,38 +1132,23 @@ function renderUniv() {
   const te = state.targetEdit;
   return `
     <div class="stack">
-      <div class="row-between"><button class="btn btn-quiet btn-sm" data-action="home">← 大学の一覧</button></div>
       <h1 tabindex="-1">${esc(univ.name)}</h1>
       ${te ? `
       <div class="card stack-sm">
-        <label class="field"><span>目標の得点率(%)(空にすると目標なし)</span>
-          <input type="number" inputmode="decimal" min="0" max="100" step="any" data-te="value" value="${esc(te.value)}"></label>
+        <label class="field"><span>目標の正答率(%)</span>
+          <input type="number" inputmode="numeric" min="1" max="100" step="1" data-te="value" value="${esc(te.value)}"></label>
         ${errorHtml(state.targetError)}
         <div class="row">
           <button class="btn btn-primary btn-sm" data-action="save-target">決める</button>
           <button class="btn btn-quiet btn-sm" data-action="cancel-target">やめる</button>
         </div>
       </div>` : `
-      <div class="row-between">
-        <p>${univ.target != null ? `目標の得点率: <strong>${univ.target}%</strong>` : '目標の得点率: まだ決めていません'}</p>
-        <button class="btn btn-quiet btn-sm" data-action="edit-target">${univ.target != null ? '変える' : '決める'}</button>
+      <div class="row" style="gap:4px">
+        <p>${univ.target != null ? `目標の正答率: <strong>${univ.target}%</strong>` : '目標の正答率: まだ決めていません'}</p>
+        <button class="icon-btn small" data-action="edit-target" aria-label="目標の正答率を編集する">${ICON_PEN}</button>
       </div>`}
-      <div><button class="btn btn-primary" data-action="start">新規登録(赤本を1回分、記録する)</button></div>
-      ${trendSection(univ, recs, null, '赤本の軌跡(得点率)')}
-      ${recs.length ? `
-      <details class="card">
-        <summary><strong>記録の一覧(${recs.length}件)</strong></summary>
-        <div class="stack-sm" style="margin-top:8px">
-          ${[...recs].reverse().map((r) => {
-            const s = univ.scheds.find((x) => x.id === r.schedId);
-            return `<div class="row-between rec-item">
-              <span>${r.year}年${s ? '・' + esc(s.name) : ''} <strong>${pct(r.score, r.full)}%</strong> <span class="muted">(${esc(r.date)})</span></span>
-              <button class="btn btn-quiet btn-sm" data-action="remove-record" data-id="${esc(r.id)}">消す</button>
-            </div>`;
-          }).join('')}
-        </div>
-      </details>` : ''}
-      <div><button class="btn btn-danger btn-sm" data-action="remove-univ">この大学と、記録・約束をすべて消す</button></div>
+      <div><button class="btn btn-primary" data-action="start"><span class="ic">${ICON_PEN}追加</span></button></div>
+      ${trendSection(univ, recs, null, '赤本の軌跡(正答率)', true)}
     </div>`;
 }
 
@@ -969,38 +1156,27 @@ function renderUniv() {
 function renderBasic() {
   const a = state.a;
   const univ = getUniv(state.univId);
-  const scheds = univ.scheds;
-  const schedOpts = scheds.map((s) => ({ id: s.id, label: s.name })).concat(
-    [{ id: '__none', label: '日程を分けない' }],
-    scheds.length < MAX_SCHEDS ? [{ id: '__new', label: '新しい日程を追加する' }] : []
-  );
-  const showNew = !scheds.length || a.schedMode === '__new';
   return `
     <div class="stack">
       ${progress('basic')}
       <h1 tabindex="-1">今回の赤本について</h1>
       <p class="muted">${esc(univ.name)} の赤本を登録します。</p>
-      <label class="field"><span>解いた年度(西暦)</span>
-        <input type="number" inputmode="numeric" min="2000" max="2100" placeholder="例: 2025" data-text="year" value="${esc(a.year)}"></label>
+      <label class="field"><span>解いた年度(西暦4桁)</span>
+        <input type="text" inputmode="numeric" pattern="[0-9]*" maxlength="4" autocomplete="off" placeholder="例: 2025" data-text="year" value="${esc(a.year)}"></label>
+      <div class="sched-field stack-sm">
+        <label class="field"><span>入試日程(任意)</span>
+          <input type="text" maxlength="12" autocomplete="off" placeholder="例: T日程、A日程、前期" data-text="sched" value="${esc(a.sched)}"></label>
+        <div id="sched-suggest" class="suggest" hidden></div>
+      </div>
       <fieldset>
-        <legend>入試の日程(日程が複数ある大学だけ。なければ空のままでOK)</legend>
-        ${scheds.length ? radios('sched', schedOpts, a.schedMode, 'data-bind="schedMode"', 'col') : ''}
-        ${showNew ? `<label class="field" style="margin-top:8px"><span>${scheds.length ? '新しい日程の名前' : '日程の名前(任意)'}</span>
-          <input type="text" maxlength="12" placeholder="例: T日程、A日程、前期" data-text="schedNew" value="${esc(a.schedNew)}"></label>` : ''}
-        <p class="muted" style="margin-top:8px">日程ごとに、グラフの線の色と形が変わります。「T」「T日程」「Ｔ」などは、同じ日程として扱います。日程は${MAX_SCHEDS}つまでです。</p>
-      </fieldset>
-      <fieldset>
-        <legend>赤本は何回目ですか?</legend>
-        ${radios('round', ROUNDS, a.round, 'data-bind="round"')}
-      </fieldset>
-      <fieldset>
-        <legend>得点と満点を入力してください</legend>
-        <div class="inline-num">
-          <input type="number" inputmode="decimal" min="0" step="any" aria-label="得点" placeholder="得点" data-text="score" value="${esc(a.score)}">
-          <span>/</span>
-          <input type="number" inputmode="decimal" min="1" step="any" aria-label="満点" placeholder="満点 (例: 100)" data-text="full" value="${esc(a.full)}">
-          <span>点</span>
+        <legend>全問題数と正答数を入力してください</legend>
+        <div class="fields-2">
+          <label class="field"><span>全問題数</span>
+            <input type="text" inputmode="numeric" pattern="[0-9]*" maxlength="3" autocomplete="off" placeholder="例: 40" data-text="full" value="${esc(a.full)}"></label>
+          <label class="field"><span>正答数</span>
+            <input type="text" inputmode="numeric" pattern="[0-9]*" maxlength="3" autocomplete="off" placeholder="例: 25" data-text="score" value="${esc(a.score)}"></label>
         </div>
+        <p class="muted" style="margin-top:8px">記録すると、正答率(%)に自動で換算されます。</p>
       </fieldset>
       ${errorHtml(state.error)}
       ${nav('basic')}
@@ -1018,19 +1194,6 @@ function renderTime() {
       </fieldset>
       ${errorHtml(state.error)}
       ${nav('time')}
-    </div>`;
-}
-function renderUnlearned() {
-  const a = state.a;
-  return `
-    <div class="stack">
-      ${progress('unlearned')}
-      <h1 tabindex="-1">まだの分野はありますか?</h1>
-      <fieldset>
-        <legend>まだ習っていない、または自信のない分野を選んでください(何個でも。なければ何も選ばずに次へ)</legend>
-        <div class="options">${FIELDS.map((f) => `<label class="option"><input type="checkbox" value="${esc(f)}" data-multi="unlearned" ${a.unlearned.includes(f) ? 'checked' : ''}><span>${esc(f)}</span></label>`).join('')}</div>
-      </fieldset>
-      ${nav('unlearned')}
     </div>`;
 }
 function renderMiss(m, i) {
@@ -1108,11 +1271,6 @@ function renderMemo() {
 function actionHtml(tag, a, opts) {
   const act = ACTIONS[tag];
   const steps = opts.onlyFirst ? act.steps.slice(0, 1) : act.steps;
-  const extra = tag === 'unlearned' && a.unlearned.length
-    ? `<div class="stack-sm"><p class="muted">選んだ分野(どれから始めるか迷ったら、今回の赤本でよく出ていた分野から):</p><div class="row">${a.unlearned.map((f) => `<span class="chip">${esc(f)}</span>`).join('')}</div></div>`
-    : '';
-  const cardBtn = tag === 'knowledge'
-    ? '<div><button class="btn" data-action="open-cards-from-result">間違えた用語を、用語カードにする</button></div>' : '';
   return `
     <div class="stack">
       <div>
@@ -1120,12 +1278,10 @@ function actionHtml(tag, a, opts) {
         <h2>${esc(act.title)}</h2>
       </div>
       <p>${esc(act.why)}</p>
-      ${extra}
       <ol class="steps">${steps.map((s) => `<li>${esc(s)}</li>`).join('')}</ol>
       ${opts.onlyFirst ? '<p class="notice">時間が少ないので、まず最初のひとつだけでOKです。慣れたら続きもやってみましょう。</p>' : ''}
       <dl class="kv"><dt>目安</dt><dd>${esc(act.amount)}</dd></dl>
       <p class="goal"><strong>終わりの目印:</strong> ${esc(act.goal)}</p>
-      ${cardBtn}
     </div>`;
 }
 
@@ -1154,18 +1310,16 @@ function textFieldHtml(st, target) {
 function promiseHtml(d, a) {
   if (state.savedPromise) {
     const p = state.savedPromise;
+    const icsBtn = ENABLE_CALENDAR && p.when ? '<button class="btn btn-primary" data-action="ics">カレンダーに入れる</button>' : '';
     return `
-      <section class="card card-accent stack" aria-labelledby="pc">
+      <section class="stack" aria-labelledby="pc">
         <h2 id="pc">約束カード</h2>
-        <p class="score-big">${esc(fmtWhen(p.when))}</p>
-        <p><strong>やること:</strong> ${esc(p.text)}</p>
-        ${p.when ? `
+        ${scrapHtml(p, {})}
+        ${p.when ? '' : '<p class="muted">日付はまだ決めていません。決めたくなったら、トップ画面から日付を決められます。</p>'}
         <div class="row">
-          <button class="btn btn-primary" data-action="ics">カレンダーに入れる</button>
-          <button class="btn" data-action="copy-promise">文章をコピー</button>
-        </div>` : `
-        <p class="muted">日付はまだ決めていません。決めたくなったら、トップ画面から日付を決められます。</p>
-        <div class="row"><button class="btn" data-action="copy-promise">文章をコピー</button></div>`}
+          ${icsBtn}
+          <button class="btn${icsBtn ? '' : ' btn-primary'}" data-action="copy-promise">文章をコピー</button>
+        </div>
         <p id="promise-status" class="muted" role="status"></p>
         <p class="muted">この画面をスクリーンショットして、スマホの待ち受けや写真に残すのもおすすめです。次にこのツールを開いたとき、約束を守れたか聞かれます。</p>
       </section>`;
@@ -1182,33 +1336,34 @@ function promiseHtml(d, a) {
       ${textFieldHtml(p, 'promise')}
       ${whenFieldsHtml(p, 'promise')}
       ${errorHtml(state.promiseError)}
-      <div><button class="btn btn-primary" data-action="promise">約束して、この端末に保存する</button></div>
+      <div><button class="btn btn-primary" data-action="promise">約束する</button></div>
     </section>`;
 }
 
 function draftInfo() {
   const univ = getUniv(state.univId);
   const a = state.a;
-  const mode = effectiveSchedMode(univ, a);
+  const name = a.sched.trim();
   let schedKey = ''; let schedName = '';
-  if (mode === '__new') {
-    const hit = matchSched(univ, a.schedNew);
+  if (name) {
+    const hit = matchSched(univ, name);
     schedKey = hit ? hit.id : '__draft';
-    schedName = hit ? hit.name : a.schedNew.trim();
-  } else if (mode && mode !== '__none') {
-    schedKey = mode;
+    schedName = hit ? hit.name : name;
   }
-  return { year: Number(a.year), schedKey, schedName, v: pct(a.score, a.full) };
+  return { year: Number(a.year), schedKey, schedName, v: pct(a.score, a.full), score: Number(a.score), full: Number(a.full) };
 }
 
 function trendHtml() {
   const univ = getUniv(state.univId);
   if (!univ) return '';
   const recs = loadRecs().filter((r) => r.univId === univ.id);
+  /* 通常は保存済みなので、記録がそのままグラフに出る。保存できなかったときだけ、白抜きの印で出す */
   const draft = state.savedId ? null : draftInfo();
-  const dup = draft && recs.some((r) => r.year === draft.year && (r.schedId || '') === draft.schedKey);
-  return trendSection(univ, recs, draft, `${univ.name} の得点率の推移`)
-    + (dup ? '<p class="muted">同じ年度・日程の記録がすでにあります。グラフには、新しいほうを表示します。</p>' : '');
+  const cur = state.savedId ? recs.find((r) => r.id === state.savedId) : null;
+  const me = draft ? { year: draft.year, schedKey: draft.schedKey } : (cur ? { year: cur.year, schedKey: cur.schedId || '' } : null);
+  const dup = me && recs.some((r) => r.id !== state.savedId && r.year === me.year && (r.schedId || '') === me.schedKey);
+  return trendSection(univ, recs, draft, `${univ.name} の正答率の推移`, false)
+    + (dup ? '<p class="muted">同じ年度・日程の記録がすでにあります。グラフには、新しいほうの点だけを表示します。</p>' : '');
 }
 
 function compareHtml(res, d, a) {
@@ -1224,14 +1379,14 @@ function compareHtml(res, d, a) {
   let fu = '';
   if (pp) {
     if (pp.status === 'open') fu = '<p>前回の約束: まだ「どうだったか」を記録していません。トップ画面で記録できます。</p>';
-    else if (pp.status === 'done') fu = `<p>前回の約束: やりきりました。${diff > 0 ? 'やったことが、得点率に出ています。' : '今回は得点が動きませんでしたが、赤本ごとの難しさの差もあります。続けて確かめましょう。'}</p>`;
+    else if (pp.status === 'done') fu = `<p>前回の約束: やりきりました。${diff > 0 ? 'やったことが、正答率に出ています。' : '今回は得点が動きませんでしたが、赤本ごとの難しさの差もあります。続けて確かめましょう。'}</p>`;
     else fu = `<p>前回の約束: ${esc(pp.status === 'partial' ? '一部だけやった' : 'できなかった')}。うまくいかなかった理由を、先生に話してみましょう。</p>`;
   }
   return `
     <section class="card stack-sm" aria-labelledby="cmp">
       <h2 id="cmp">前回との比べ方</h2>
       <p class="muted">${res.prevSame ? '同じ大学の前回と比べています。' : '前回(別の大学)と比べています。'}</p>
-      <p>得点率: 前回 ${pr}%(${esc(prev.date)})→ 今回 ${cr}%(${diffText}ポイント)</p>
+      <p>正答率: 前回 ${pr}%(${esc(prev.date)})→ 今回 ${cr}%(${diffText}ポイント)</p>
       ${same
         ? `<p>前回と同じ「${esc(prevLabel)}」が、今回も最優先です。前回のアクションは続けられましたか?続かなかったなら、時間を半分にして「最初の一歩」だけからやり直せば十分です。</p>`
         : `<p>前回の最優先だった「${esc(prevLabel)}」は、今回は最優先ではなくなりました。課題が入れ替わるのは、前に進んでいる証拠です。</p>`}
@@ -1255,10 +1410,13 @@ function renderResult() {
     <div class="stack">
       <h1 tabindex="-1">結果</h1>
       <p class="notice">${esc(lead)}</p>
+      ${state.saveFailed
+        ? '<p class="notice notice-warn" role="alert">この端末には、記録を保存できませんでした(ブラウザの設定で保存が禁止されているかもしれません)。この結果は、画面を閉じると消えます。</p>'
+        : '<p class="muted">この赤本の記録は、この端末に自動で保存しました。消したいときは、大学のページの一覧から消せます。</p>'}
 
       <section class="card stack" aria-labelledby="found">
         <h2 id="found">今回わかったこと</h2>
-        <p><span class="score-big">${cr}%</span> <span class="muted">(${esc(a.score)} / ${esc(a.full)}点)</span></p>
+        <p><span class="score-big">${cr}%</span> <span class="muted">(全${esc(a.full)}問中 ${esc(a.score)}問正解)</span></p>
         ${d.ranked.length ? `
         <div class="stack-sm" role="list" aria-label="失点の内訳">
           ${d.ranked.map((t, i) => `
@@ -1286,15 +1444,6 @@ function renderResult() {
 
       ${trendHtml()}
       ${compareHtml(state.result, d, a)}
-
-      <section class="card stack-sm" aria-labelledby="save">
-        <h2 id="save">結果だけ残す</h2>
-        <p class="muted">約束はせず、結果だけ保存します。保存先は、この端末のブラウザの中だけです。</p>
-        <div class="row">
-          <button class="btn" data-action="save" ${state.savedId ? 'disabled' : ''}>${state.savedId ? '保存しました' : 'この端末に保存する'}</button>
-        </div>
-        <p id="save-status" class="muted" role="status"></p>
-      </section>
 
       <section class="card stack-sm" aria-labelledby="ai">
         <h2 id="ai">AIに相談してみる(任意)</h2>
@@ -1370,7 +1519,6 @@ function renderHold() {
           </div>`}
         </section>`;
       }).join('')}
-      <div><button class="btn btn-quiet" data-action="home">もどる</button></div>
     </div>`;
 }
 
@@ -1389,7 +1537,7 @@ function renderTeacher() {
   const held = proms.filter((p) => p.status === 'held').length;
   return `
     <div class="stack">
-      <h1 tabindex="-1">先生に見せる画面</h1>
+      <h1 tabindex="-1">先生に見せる</h1>
       <p class="notice">生徒が端末を見せて、先生が点検するための、読むだけの画面です。ここから内容は変えられません。ひとこと(自由記述)は保存していないので、ここには出ません。</p>
       <section class="card stack" aria-labelledby="t-sum">
         <h2 id="t-sum">まとめ</h2>
@@ -1418,91 +1566,68 @@ function renderTeacher() {
           return `
           <div class="rec-item stack-sm">
             <p><strong>${esc(recLabel(r, univs))}</strong> <span class="muted">${esc(r.date)}</span></p>
-            <p>得点率 <strong>${pct(r.score, r.full)}%</strong>(${esc(r.score)} / ${esc(r.full)}点)・最優先の課題: ${esc(r.primary === 'stable' ? '課題なし' : tagLabel(r.primary))}</p>
+            <p>正答率 <strong>${pct(r.score, r.full)}%</strong>(全${esc(r.full)}問中 ${esc(r.score)}問正解)・最優先の課題: ${esc(r.primary === 'stable' ? '課題なし' : tagLabel(r.primary))}</p>
             ${ps.length ? ps.map((p) => `
               <p>約束: ${esc(p.text)}<br><span class="muted">${esc(fmtWhen(p.when))}</span> ${statusChip(p.status)}${p.reason ? ` <span class="muted">(理由: ${esc((FU_REASONS.find((x) => x.id === p.reason) || {}).label || '')})</span>` : ''}</p>`).join('') : '<p class="muted">約束: なし</p>'}
           </div>`;
         }).join('')}
       </section>
-      <div><button class="btn btn-quiet" data-action="home">もどる</button></div>
-    </div>`;
-}
-
-/* --- 用語カード --- */
-function renderCards() {
-  const cards = loadCards();
-  return `
-    <div class="stack">
-      <h1 tabindex="-1">用語カード</h1>
-      <p>間違えた用語を、「問い」と「答え」のカードにします。言えたカードは、1日後・3日後・7日後にまた出ます。言えなかったカードは、すぐにまた出ます。</p>
-      <div class="card stack">
-        <h2>カードを作る</h2>
-        <label class="field"><span>問い</span>
-          <input type="text" maxlength="60" placeholder="例: ATP合成酵素があるのはどこ?" data-card="q" value="${esc(state.cardForm.q)}"></label>
-        <label class="field"><span>答え</span>
-          <input type="text" maxlength="80" placeholder="例: ミトコンドリアの内膜" data-card="a" value="${esc(state.cardForm.a)}"></label>
-        ${errorHtml(state.cardError)}
-        <div><button class="btn btn-primary" data-action="add-card">カードを追加する</button></div>
-      </div>
-      <div class="row">
-        <button class="btn btn-primary" data-action="start-review" ${cards.filter(cardIsDue).length ? '' : 'disabled'}>復習する(${cards.filter(cardIsDue).length}枚)</button>
-        ${cards.length ? '<button class="btn btn-danger" data-action="clear-cards">カードを全部消す</button>' : ''}
-      </div>
-      ${cards.length ? `
-      <div class="stack-sm">
-        <h2>カード一覧(${cards.length}枚)</h2>
-        ${cards.map((c) => `
-          <div class="qa stack-sm">
-            <p><strong>${esc(c.q)}</strong></p>
-            <p>${esc(c.a)}</p>
-            <div class="row-between"><span class="muted">覚えた度: <span class="dots" aria-label="${Math.min(c.streak || 0, 3)} / 3">${'●'.repeat(Math.min(c.streak || 0, 3))}${'○'.repeat(3 - Math.min(c.streak || 0, 3))}</span></span>
-            <button class="btn btn-quiet" data-action="remove-card" data-id="${esc(c.id)}">消す</button></div>
-          </div>`).join('')}
-      </div>` : ''}
-      <div><button class="btn btn-quiet" data-action="back-from-cards">もどる</button></div>
-    </div>`;
-}
-function renderReview() {
-  const r = state.review;
-  if (!r || r.done) {
-    return `
-      <div class="stack">
-        <h1 tabindex="-1">復習おわり</h1>
-        <p class="notice">言えた: ${r ? r.ok : 0}回 / 言えなかった: ${r ? r.ng : 0}回。言えなかったカードは、また出てきます。</p>
-        <div><button class="btn btn-primary" data-action="open-cards">カード一覧にもどる</button></div>
-      </div>`;
-  }
-  const cards = loadCards();
-  const c = cards.find((x) => x.id === r.ids[r.i]);
-  if (!c) return '<div class="stack"><p>カードが見つかりません。</p><button class="btn" data-action="open-cards">もどる</button></div>';
-  return `
-    <div class="stack">
-      <div class="row-between"><span class="muted">${r.i + 1} / ${r.ids.length}</span>
-        <button class="btn btn-quiet" data-action="finish-review">ここでやめる</button></div>
-      <h1 tabindex="-1">思い出してみよう</h1>
-      <div class="qa stack">
-        <p class="qa-q">${esc(c.q)}</p>
-        ${r.shown ? `<p class="goal"><strong>答え:</strong> ${esc(c.a)}</p>` : ''}
-      </div>
-      ${r.shown ? `
-      <div class="row">
-        <button class="btn btn-primary" data-action="card-ok">言えた</button>
-        <button class="btn" data-action="card-ng">言えなかった</button>
-      </div>` : '<div><button class="btn btn-primary" data-action="show-answer">答えを見る</button></div>'}
-      ${r.shown ? '' : '<p class="muted">先に、頭の中や声で答えてから、答えを見ましょう。</p>'}
     </div>`;
 }
 
 const VIEWS = {
-  intro: renderIntro, addUniv: renderAddUniv, univ: renderUniv,
-  basic: renderBasic, time: renderTime, unlearned: renderUnlearned,
+  welcome: renderWelcome, about: renderAbout, intro: renderIntro, addUniv: renderAddUniv, univ: renderUniv,
+  basic: renderBasic, time: renderTime,
   misses: renderMisses, study: renderStudy, memo: renderMemo, result: renderResult,
-  hold: renderHold, teacher: renderTeacher, cards: renderCards, review: renderReview
+  hold: renderHold, teacher: renderTeacher, promises: renderPromises
 };
+
+/* --- 下のタブバー(戻る / ホーム / 約束)。入力中の画面と最初の案内では隠す --- */
+const ICON_BACK = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg>';
+const ICON_HOME = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 11l9-8 9 8"/><path d="M5 10v10h14V10"/><path d="M10 20v-6h4v6"/></svg>';
+const ICON_NOTE = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="3" width="14" height="18" rx="2"/><path d="M9 8h6"/><path d="M9 12h6"/><path d="M9 16h4"/></svg>';
+const NAV_HIDDEN_STEPS = ['welcome'].concat(STEPS);
+/* 「戻る」の行き先。結果は大学のページへ、保留中の約束は来た場所へ、それ以外はホームへ */
+function parentStep() {
+  if (state.step === 'result') return 'univ';
+  if (state.step === 'hold') return state.holdFrom || 'intro';
+  return 'intro';
+}
+/* 約束ページを開く。goto と違い、スタンプ演出用の stampedId を残せる */
+function showPromises(opts) {
+  opts = opts || {};
+  state.step = 'promises';
+  state.error = '';
+  state.repromise = null;
+  state.holdMsg = '';
+  state.fuOpenId = '';
+  if (opts.filter) state.promFilter = opts.filter;
+  state.promMsg = opts.msg || '';
+  state.stampedId = opts.stampedId || '';
+  try { history.pushState({ step: 'promises', univId: state.univId }, '', '#promises'); } catch (e) { /* noop */ }
+  render({ focusTop: true });
+}
+function renderTabbar() {
+  const bar = document.getElementById('tabbar');
+  if (!bar) return;
+  const hidden = NAV_HIDDEN_STEPS.includes(state.step);
+  document.body.classList.toggle('has-tabbar', !hidden);
+  bar.hidden = hidden;
+  if (hidden) { bar.innerHTML = ''; return; }
+  const n = loadProms().filter((p) => p.status === 'open' || p.status === 'held').length;
+  const cur = state.step;
+  const onProm = cur === 'promises' || cur === 'hold';
+  bar.innerHTML = `<div class="tabbar-in">
+    <button class="tab" data-action="nav-back" ${cur === 'intro' ? 'disabled' : ''}>${ICON_BACK}<span>戻る</span></button>
+    <button class="tab${cur === 'intro' ? ' on' : ''}" data-action="home" ${cur === 'intro' ? 'aria-current="page"' : ''}>${ICON_HOME}<span>ホーム</span></button>
+    <button class="tab${onProm ? ' on' : ''}" data-action="open-promises" ${onProm ? 'aria-current="page"' : ''} aria-label="約束${n ? '(未完了' + n + '件)' : ''}">${ICON_NOTE}<span>約束</span>${n ? `<b class="tab-badge" aria-hidden="true">${n > 9 ? '9+' : n}</b>` : ''}</button>
+  </div>`;
+}
 
 function render(opts) {
   if (!VIEWS[state.step]) state.step = 'intro';
   app.innerHTML = VIEWS[state.step]();
+  renderTabbar();
   if (opts && opts.focusSelector) {
     const el = app.querySelector(opts.focusSelector);
     if (el) el.focus();
@@ -1516,13 +1641,15 @@ function render(opts) {
 function goto(step) {
   state.step = step;
   state.error = '';
+  state.stampedId = ''; state.promMsg = ''; state.fuOpenId = '';
   try { history.pushState({ step, univId: state.univId }, '', '#' + step); } catch (e) { /* noop */ }
   render({ focusTop: true });
 }
 function guardStep(step) {
+  if (!isWelcomed()) return 'welcome';
+  if (step === 'welcome') return 'intro';
   if (STEPS.includes(step) && !state.started) return 'intro';
   if (step === 'result' && !state.result) return 'intro';
-  if (step === 'review' && !state.review) return 'cards';
   if (step === 'univ' && !getUniv(state.univId)) return 'intro';
   return VIEWS[step] ? step : 'intro';
 }
@@ -1543,20 +1670,17 @@ function validate(step) {
     const univ = getUniv(state.univId);
     if (a.year === '') return '解いた年度を入れてください。';
     const y = Number(a.year);
-    if (!(Number.isInteger(y) && y >= 2000 && y <= 2100)) return '年度は、西暦(例: 2025)で入力してください。';
-    const mode = effectiveSchedMode(univ, a);
-    if (univ.scheds.length && !mode) return '日程を選んでください。';
-    if (mode === '__new') {
-      const name = a.schedNew.trim();
-      if (!name) return '新しい日程の名前を入れてください。';
-      if (!matchSched(univ, name) && univ.scheds.length >= MAX_SCHEDS) return `日程は${MAX_SCHEDS}つまでです。すでにある日程から選んでください。`;
+    if (!(/^\d{4}$/.test(a.year) && y >= 2000 && y <= 2100)) return '年度は、西暦4桁の数字で入力してください。(例: 2025)';
+    const name = a.sched.trim();
+    if (name && !matchSched(univ, name) && univ.scheds.length >= MAX_SCHEDS) {
+      return `この大学の入試日程は${MAX_SCHEDS}つまでです。すでにある日程の名前を使ってください。`;
     }
-    if (!a.round) return '何回目かを選んでください。';
+    if (a.full === '') return '全問題数を入力してください。';
+    if (a.score === '') return '正答数を入力してください。';
     const s = Number(a.score);
     const f = Number(a.full);
-    if (a.score === '' || a.full === '') return '得点と満点を入力してください。';
-    if (!(f > 0)) return '満点は、1以上の数字を入力してください。';
-    if (!(s >= 0) || s > f) return '得点は、0以上で満点以下の数字を入力してください。';
+    if (!(f >= 1)) return '全問題数は、1以上の数字を入力してください。';
+    if (!(s >= 0) || s > f) return '正答数は、0以上で全問題数以下の数字を入力してください。';
   }
   if (step === 'time' && !a.time) return '当てはまるものを選んでください。';
   if (step === 'misses') {
@@ -1604,29 +1728,23 @@ function makePromise(recordId, tag, scope, text, first, when, parentId) {
     createdAt: Date.now(), status: 'open', reason: '', answeredAt: null, parentId: parentId || ''
   };
 }
-/* 記録がまだ保存されていなければ保存して返す */
+/* 今回の記録を保存して返す。結果が出たときに自動で呼ぶ。
+ * 結果画面から入力にもどって出し直したときは、新しく増やさず、同じ記録を上書きする */
 function ensureRecord() {
-  if (state.savedId) return loadRecs().find((r) => r.id === state.savedId) || null;
   const univ = getUniv(state.univId);
   const schedId = resolveSched(univ, state.a);
   const entry = makeEntry(state.a, state.result.d, univ, schedId);
   const all = loadRecs();
-  all.push(entry);
+  const i = state.savedId ? all.findIndex((r) => r.id === state.savedId) : -1;
+  if (i >= 0) { entry.id = all[i].id; entry.ts = all[i].ts; entry.date = all[i].date; all[i] = entry; } else all.push(entry);
   if (!saveRecs(all)) return null;
   state.savedId = entry.id; state.saved = true;
   return entry;
 }
+const currentRecord = () => (state.savedId ? loadRecs().find((r) => r.id === state.savedId) || null : null);
 function startFlow() {
-  const univ = getUniv(state.univId);
-  const mine = loadRecs().filter((r) => r.univId === univ.id);
-  const last = mine[mine.length - 1];
   state.a = newAnswers();
   state.a.misses.push(newMiss());
-  if (univ.scheds.length) {
-    if (last && last.schedId && univ.scheds.some((s) => s.id === last.schedId)) state.a.schedMode = last.schedId;
-    else if (last && !last.schedId) state.a.schedMode = '__none';
-    else state.a.schedMode = univ.scheds[0].id;
-  }
   state.started = true;
   state.saved = false; state.savedId = ''; state.savedPromise = null;
   state.showAi = false; state.includeMemo = false; state.followupMsg = '';
@@ -1635,14 +1753,20 @@ function startFlow() {
 function showResult() {
   const a = state.a;
   const univ = getUniv(state.univId);
-  const mine = loadRecs().filter((r) => r.univId === univ.id);
-  const all = loadRecs();
+  /* 今回の記録(出し直しのときは前回の分)は、比べる相手に入れない */
+  const all = loadRecs().filter((r) => r.id !== state.savedId);
+  const mine = all.filter((r) => r.univId === univ.id);
   const prev = mine.length ? mine[mine.length - 1] : (all.length ? all[all.length - 1] : null);
   const proms = loadProms();
   const prevProm = prev ? latestPromiseOf(proms, prev.id) : null;
+  /* 何回目かは、この端末の記録の数から自動で数える(3回目以降は「3」) */
+  a.round = String(Math.min(3, all.length + 1));
   const d = decide(a);
   state.result = { d, prev, prevSame: mine.length > 0, prevProm };
-  state.saved = false; state.savedId = ''; state.savedPromise = null; state.promiseError = '';
+  /* 出し直しのとき、前の結果につくった約束は消す(結果が変わるため) */
+  if (state.savedPromise) saveProms(loadProms().filter((p) => p.id !== state.savedPromise.id));
+  state.savedPromise = null; state.promiseError = '';
+  state.saveFailed = !ensureRecord();
   const scope = defaultScope(a, prevProm);
   const text = promiseText(d.primary, scope, a);
   state.promise = newWhenState({ scope, text, base: text });
@@ -1658,30 +1782,77 @@ function removeUnivData(univId) {
   saveUnivs(loadUnivs().filter((u) => u.id !== univId));
 }
 
-app.addEventListener('click', async (e) => {
+/* 目標の正答率: 必ず入れる。1〜100の整数。不正・未入力のときは undefined */
+function parseTarget(v) {
+  if (v === '') return undefined;
+  const t = Number(v);
+  return (Number.isInteger(t) && t >= 1 && t <= 100) ? t : undefined;
+}
+const TARGET_ERROR = '目標の正答率を、1〜100の整数で入力してください。';
+
+/* 入試日程の入力欄の下に、覚えてある日程名の候補を出す */
+function updateSchedSuggest() {
+  const input = app.querySelector('[data-text="sched"]');
+  const box = document.getElementById('sched-suggest');
+  if (!input || !box) return;
+  const list = schedCandidates(input.value);
+  box.innerHTML = list.length
+    ? '<span class="muted">タップして選べます:</span>' + list.map((n) => `<button type="button" class="chip-btn" data-action="pick-sched" data-name="${esc(n)}">${esc(n)}</button>`).join('')
+    : '';
+  box.hidden = !list.length;
+}
+function hideSchedSuggest() {
+  const box = document.getElementById('sched-suggest');
+  if (box) box.hidden = true;
+}
+
+const onClick = async (e) => {
+  if (!e.target.closest('.sched-field')) hideSchedSuggest();
   const btn = e.target.closest('[data-action]');
   if (!btn || btn.disabled) return;
   const act = btn.dataset.action;
 
-  if (act === 'home') {
+  if (act === 'welcome-ok') {
+    markWelcomed();
+    state.step = 'intro';
+    try { history.replaceState({ step: 'intro', univId: '' }, '', location.pathname + location.search); } catch (err) { /* noop */ }
+    render({ focusTop: true });
+  } else if (act === 'pick-sched') {
+    const input = app.querySelector('[data-text="sched"]');
+    if (input) { input.value = btn.dataset.name; state.a.sched = btn.dataset.name; input.focus(); }
+    hideSchedSuggest();
+  } else if (act === 'home') {
+    if (state.step === 'intro') return;
     state.targetEdit = null; state.repromise = null; state.holdMsg = '';
     goto('intro');
   } else if (act === 'open-add-univ') {
-    state.univForm = { name: '', target: '' }; state.univError = '';
+    state.univForm = { name: UNIV_SUFFIX, target: '' }; state.univError = ''; state.univErrors = {};
     goto('addUniv');
-  } else if (act === 'add-univ') {
-    const name = state.univForm.name.trim();
-    const univs = loadUnivs();
-    if (!name) { state.univError = '大学名を入れてください。'; render(); return; }
-    let target = null;
-    if (state.univForm.target !== '') {
-      const t = Number(state.univForm.target);
-      if (!(t >= 0 && t <= 100)) { state.univError = '目標の得点率は、0〜100で入力してください。'; render(); return; }
-      target = t;
+    const el = app.querySelector('[data-uf="name"]');
+    if (el) { el.focus(); el.setSelectionRange(0, 0); }
+  } else if (act === 'delete-univ') {
+    if (window.confirm('この大学に関するすべての記録を削除します。よろしいですか?')) {
+      removeUnivData(btn.dataset.id);
+      if (state.univId === btn.dataset.id) state.univId = '';
+      render();
     }
-    if (univs.length >= MAX_UNIVS) { state.univError = `大学は${MAX_UNIVS}校までです。`; render(); return; }
-    const dup = univs.find((u) => normUniv(u.name) === normUniv(name));
-    if (dup) { state.univError = `「${dup.name}」は、すでに登録されています。一覧からその大学を開いてください。`; render(); return; }
+  } else if (act === 'add-univ') {
+    /* 「大学」が重なったら1つにする(例: 東京大学+大学)。「大学」だけ(校名なし)は未入力扱い */
+    const name = state.univForm.name.trim().replace(/(大学)+$/, UNIV_SUFFIX);
+    const univs = loadUnivs();
+    const errs = {}; const msgs = [];
+    if (!name.replace(/大学$/, '').trim()) { errs.name = true; msgs.push('大学名を入れてください。'); }
+    const target = parseTarget(state.univForm.target);
+    if (target === undefined) { errs.target = true; msgs.push(TARGET_ERROR); }
+    if (!msgs.length && univs.length >= MAX_UNIVS) msgs.push(`大学は${MAX_UNIVS}校までです。`);
+    const dup = !msgs.length ? univs.find((u) => normUniv(u.name) === normUniv(name)) : null;
+    if (dup) { errs.name = true; msgs.push(`「${dup.name}」は、すでに登録されています。一覧からその大学を開いてください。`); }
+    if (msgs.length) {
+      state.univErrors = errs; state.univError = msgs.join(' ');
+      render({ focusSelector: errs.name ? '[data-uf="name"]' : (errs.target ? '[data-uf="target"]' : null) });
+      return;
+    }
+    state.univErrors = {};
     const u = { id: newId('u'), name, target, scheds: [] };
     univs.push(u);
     if (!saveUnivs(univs)) { state.univError = '保存できませんでした(ブラウザの設定で保存が禁止されているかもしれません)。'; render(); return; }
@@ -1701,13 +1872,8 @@ app.addEventListener('click', async (e) => {
     state.targetEdit = null; state.targetError = '';
     render();
   } else if (act === 'save-target') {
-    const v = state.targetEdit.value;
-    let target = null;
-    if (v !== '') {
-      const t = Number(v);
-      if (!(t >= 0 && t <= 100)) { state.targetError = '目標の得点率は、0〜100で入力してください。'; render(); return; }
-      target = t;
-    }
+    const target = parseTarget(state.targetEdit.value);
+    if (target === undefined) { state.targetError = TARGET_ERROR; render(); return; }
     updateUniv(state.univId, { target });
     state.targetEdit = null; state.targetError = '';
     render();
@@ -1717,12 +1883,6 @@ app.addEventListener('click', async (e) => {
       saveRecs(loadRecs().filter((r) => r.id !== id));
       saveProms(loadProms().filter((p) => p.recordId !== id));
       render();
-    }
-  } else if (act === 'remove-univ') {
-    if (window.confirm('この大学と、その記録・約束をすべて消します。よろしいですか?')) {
-      removeUnivData(state.univId);
-      state.univId = '';
-      goto('intro');
     }
   } else if (act === 'start') {
     startFlow();
@@ -1738,6 +1898,7 @@ app.addEventListener('click', async (e) => {
       if (el) el.scrollIntoView({ block: 'center' });
       return;
     }
+    if (state.step === 'basic') rememberSched(state.a.sched);
     const i = STEPS.indexOf(state.step);
     if (i === STEPS.length - 1) showResult();
     else goto(STEPS[i + 1]);
@@ -1751,10 +1912,6 @@ app.addEventListener('click', async (e) => {
     state.a.misses.splice(Number(btn.dataset.index), 1);
     state.error = '';
     render();
-  } else if (act === 'save') {
-    const rec = ensureRecord();
-    render();
-    setStatus('save-status', rec ? 'この端末に保存しました。' : '保存できませんでした(ブラウザの設定で保存が禁止されているかもしれません)。');
   } else if (act === 'reset-text') {
     const st = whenTarget(btn.dataset.prt);
     st.text = st.base; st.edited = false;
@@ -1765,10 +1922,10 @@ app.addEventListener('click', async (e) => {
     const text = st.text.trim();
     if (err) { state.promiseError = err; render(); return; }
     if (!text) { state.promiseError = 'やることを入れてください。'; render(); return; }
-    const rec = ensureRecord();
+    const rec = currentRecord();
     if (!rec) { state.promiseError = '保存できませんでした(ブラウザの設定で保存が禁止されているかもしれません)。'; render(); return; }
     const tag = state.result.d.primary;
-    const p = makePromise(rec.id, tag, st.scope, text, firstText(tag, state.a), composeWhen(st) || '');
+    const p = makePromise(rec.id, tag, st.scope, text, firstText(tag), composeWhen(st) || '');
     const proms = loadProms();
     proms.push(p);
     if (!saveProms(proms)) { state.promiseError = '保存できませんでした(ブラウザの設定で保存が禁止されているかもしれません)。'; render(); return; }
@@ -1790,11 +1947,12 @@ app.addEventListener('click', async (e) => {
     const ok = await copyText(promiseCopyText(state.savedPromise), null);
     setStatus('promise-status', ok ? 'コピーしました。メモやメッセージに貼って残せます。' : 'コピーできませんでした。画面のスクリーンショットを使ってください。');
   } else if (act === 'clear') {
-    if (window.confirm('この端末に保存した、大学・記録・約束を、全部消します。よろしいですか?(用語カードは消えません)')) {
-      clearKey(KEY_UNIVS); clearKey(KEY_RECORDS); clearKey(KEY_PROMISES); clearKey(KEY_OLD);
+    if (window.confirm('この端末に保存した、大学・記録・約束を、全部消します。よろしいですか?')) {
+      /* 共有端末で次の人が使えるように、最初の案内画面も出し直す */
+      [KEY_UNIVS, KEY_RECORDS, KEY_PROMISES, KEY_SCHEDNAMES, KEY_WELCOME, KEY_OLD, KEY_CARDS].forEach(clearKey);
       state.univId = ''; state.result = null; state.started = false;
       state.saved = false; state.savedId = ''; state.savedPromise = null; state.followupMsg = '';
-      goto('intro');
+      goto('welcome');
     }
   } else if (act === 'toggle-ai') {
     state.showAi = !state.showAi;
@@ -1811,13 +1969,18 @@ app.addEventListener('click', async (e) => {
       reason: f.reason || '',
       answeredAt: Date.now()
     });
-    state.followupMsg = f.status === 'done'
+    const msg = (f.status === 'done'
       ? 'やりきりました。それがいちばん大事です。次の赤本で、効果を確かめましょう。'
-      : (f.status === 'partial' ? 'できた分だけで十分です。次は「最初の一歩」だけの約束にして、確実に続けましょう。' : '保留の約束として残しました。いつでも、小さくして出し直せます。') + ' ' + (FU_REASON_MSG[f.reason] || '');
-    state.followupMsg = state.followupMsg.trim();
+      : (f.status === 'partial' ? 'できた分だけで十分です。次は「最初の一歩」だけの約束にして、確実に続けましょう。' : '保留の約束として残しました。いつでも、小さくして出し直せます。') + ' ' + (FU_REASON_MSG[f.reason] || '')).trim();
     state.followup = { status: '', reason: '' };
     state.followupError = '';
-    render({ focusTop: true });
+    state.followupMsg = '';
+    /* 記録した約束が見える絞り込みへ。やった／もう少しは、印の演出をつける */
+    showPromises({
+      filter: f.status === 'none' ? 'todo' : f.status,
+      msg,
+      stampedId: (f.status === 'done' || f.status === 'partial') ? btn.dataset.id : ''
+    });
   } else if (act === 'set-date') {
     const input = app.querySelector(`[data-setdate="${btn.dataset.id}"]`);
     const v = input ? input.value : '';
@@ -1829,12 +1992,31 @@ app.addEventListener('click', async (e) => {
     state.followupMsg = `日付を ${fmtDate(v)} にしました。その日にまた聞きます。`;
     render({ focusTop: true });
   } else if (act === 'open-hold') {
+    state.holdFrom = state.step === 'promises' ? 'promises' : 'intro';
     state.repromise = null; state.repromiseError = ''; state.holdMsg = '';
     goto('hold');
+  } else if (act === 'nav-back') {
+    if (state.step === 'intro') return;
+    state.targetEdit = null; state.repromise = null; state.holdMsg = '';
+    goto(guardStep(parentStep()));
+  } else if (act === 'open-promises') {
+    if (state.step === 'promises') return;
+    showPromises({ filter: state.promFilter || 'todo' });
+  } else if (act === 'prom-filter') {
+    state.promFilter = btn.dataset.id; state.fuOpenId = ''; state.promMsg = ''; state.stampedId = '';
+    render();
+  } else if (act === 'open-followup') {
+    state.fuOpenId = btn.dataset.id; state.followup = { status: '', reason: '' };
+    state.followupError = ''; state.setDateError = ''; state.promMsg = '';
+    render();
+    const el = app.querySelector('#fu'); if (el) el.scrollIntoView({ block: 'start' });
+  } else if (act === 'close-followup') {
+    state.fuOpenId = ''; state.followupError = '';
+    render();
   } else if (act === 'open-repromise') {
     const p = loadProms().find((x) => x.id === btn.dataset.id);
     if (!p) return;
-    const text = (p.first || ACTIONS[p.tag].first).replace('{field}', '未習の分野');
+    const text = (p.first || ACTIONS[p.tag].first).replace('{field}', 'まだ習っていない分野');
     state.repromise = newWhenState({ id: p.id, text, base: text });
     state.repromiseError = '';
     render();
@@ -1854,10 +2036,10 @@ app.addEventListener('click', async (e) => {
     proms.push(np);
     saveProms(proms);
     state.repromise = null; state.repromiseError = '';
-    state.holdMsg = np.when
-      ? `約束しました(${fmtWhen(np.when)})。トップ画面の「これからの約束」から、カレンダーにも入れられます。`
-      : '約束しました。日付は、トップ画面であとから決められます。';
-    render({ focusTop: true });
+    showPromises({
+      filter: 'todo',
+      msg: np.when ? `約束しました(${fmtWhen(np.when)})。` : '約束しました。日付は、約束のページであとから決められます。'
+    });
   } else if (act === 'release') {
     if (window.confirm('この約束を手放します。記録には残りますが、保留から外れます。よろしいですか?')) {
       updateProm(btn.dataset.id, { status: 'released' });
@@ -1866,71 +2048,39 @@ app.addEventListener('click', async (e) => {
     }
   } else if (act === 'open-teacher') {
     goto('teacher');
-  } else if (act === 'open-cards') {
-    state.cardsFrom = state.cardsFrom || 'intro';
-    state.review = null;
-    goto('cards');
-  } else if (act === 'open-cards-from-result') {
-    state.cardsFrom = 'result';
-    goto('cards');
-  } else if (act === 'back-from-cards') {
-    const to = state.cardsFrom === 'result' && state.result ? 'result' : 'intro';
-    state.cardsFrom = 'intro';
-    goto(to);
-  } else if (act === 'add-card') {
-    const q = state.cardForm.q.trim();
-    const ans = state.cardForm.a.trim();
-    if (!q || !ans) { state.cardError = '問いと答えの両方を入れてください。'; render(); return; }
-    const cards = loadCards();
-    if (cards.length >= 100) { state.cardError = 'カードは100枚までです。'; render(); return; }
-    cards.push({ id: newId('c'), q, a: ans, streak: 0, lastAt: 0, created: Date.now() });
-    saveCards(cards);
-    state.cardForm = { q: '', a: '' };
-    state.cardError = '';
-    render({ focusSelector: '[data-card="q"]' });
-  } else if (act === 'remove-card') {
-    saveCards(loadCards().filter((c) => c.id !== btn.dataset.id));
-    render();
-  } else if (act === 'clear-cards') {
-    if (window.confirm('用語カードを全部消します。よろしいですか?')) { clearKey(KEY_CARDS); render(); }
-  } else if (act === 'start-review') {
-    const due = loadCards().filter(cardIsDue);
-    if (!due.length) return;
-    state.review = { ids: due.map((c) => c.id), i: 0, shown: false, ok: 0, ng: 0, done: false };
-    goto('review');
-  } else if (act === 'show-answer') {
-    state.review.shown = true;
-    render({ focusSelector: '[data-action="card-ok"]' });
-  } else if (act === 'card-ok' || act === 'card-ng') {
-    const r = state.review;
-    const cards = loadCards();
-    const c = cards.find((x) => x.id === r.ids[r.i]);
-    if (c) {
-      if (act === 'card-ok') { c.streak = Math.min((c.streak || 0) + 1, 3); r.ok += 1; }
-      else { c.streak = 0; r.ng += 1; r.ids.push(c.id); }
-      c.lastAt = Date.now();
-      saveCards(cards);
-    }
-    r.i += 1; r.shown = false;
-    if (r.i >= r.ids.length) r.done = true;
-    render({ focusTop: true });
-  } else if (act === 'finish-review') {
-    state.review.done = true;
-    render({ focusTop: true });
+  } else if (act === 'open-about') {
+    goto('about');
+  }
+};
+app.addEventListener('click', onClick);
+document.getElementById('tabbar').addEventListener('click', onClick);
+
+/* 数字だけの欄(年度・全問題数・正答数)。全角数字は半角にして、数字以外は取り除く */
+const DIGIT_MAX = { year: 4, full: 3, score: 3 };
+function cleanDigits(t) {
+  const key = t.dataset.text;
+  if (!(key in DIGIT_MAX)) return;
+  const v = t.value.normalize('NFKC').replace(/\D/g, '').slice(0, DIGIT_MAX[key]);
+  if (v !== t.value) t.value = v;
+}
+/* 「大学」だけが入っている欄は、最初にタップしたとき、カーソルを「大学」の前に置く */
+app.addEventListener('focusin', (e) => {
+  const t = e.target;
+  if (t.matches && t.matches('[data-uf="name"]') && t.value === UNIV_SUFFIX) {
+    setTimeout(() => { try { t.setSelectionRange(0, 0); } catch (err) { /* noop */ } }, 0);
+  } else if (t.matches && t.matches('[data-text="sched"]')) {
+    updateSchedSuggest();
   }
 });
 
 app.addEventListener('change', (e) => {
   const t = e.target;
-  if (t.matches('[data-bind]')) {
+  if (t.matches('[data-text]')) {
+    cleanDigits(t);
+    state.a[t.dataset.text] = t.value;
+  } else if (t.matches('[data-bind]')) {
     state.a[t.dataset.bind] = t.value;
     state.error = '';
-    if (t.dataset.bind === 'schedMode') render({ focusSelector: radioSel(t) });
-  } else if (t.matches('[data-multi]')) {
-    const key = t.dataset.multi;
-    const set = new Set(state.a[key]);
-    if (t.checked) set.add(t.value); else set.delete(t.value);
-    state.a[key] = FIELDS.filter((f) => set.has(f));
   } else if (t.matches('[data-miss]:not([data-text-miss])')) {
     const m = state.a.misses[Number(t.dataset.miss)];
     const key = t.dataset.key;
@@ -1962,19 +2112,26 @@ app.addEventListener('change', (e) => {
 
 app.addEventListener('input', (e) => {
   const t = e.target;
-  if (t.matches('[data-text]')) state.a[t.dataset.text] = t.value;
-  else if (t.matches('[data-text-miss]')) state.a.misses[Number(t.dataset.miss)][t.dataset.key] = t.value;
+  if (t.matches('[data-text]')) {
+    if (!e.isComposing) cleanDigits(t);
+    state.a[t.dataset.text] = t.value;
+    if (t.dataset.text === 'sched') updateSchedSuggest();
+  } else if (t.matches('[data-text-miss]')) state.a.misses[Number(t.dataset.miss)][t.dataset.key] = t.value;
   else if (t.matches('[data-pr]') && t.type !== 'radio') {
     const st = whenTarget(t.dataset.prt);
     st[t.dataset.pr] = t.value;
     if (t.dataset.pr === 'text') st.edited = t.value !== st.base;
   }
-  else if (t.matches('[data-uf]')) state.univForm[t.dataset.uf] = t.value;
+  else if (t.matches('[data-uf]')) {
+    state.univForm[t.dataset.uf] = t.value;
+    /* 入力し直したら、赤い枠をはずす */
+    if (state.univErrors[t.dataset.uf]) { state.univErrors[t.dataset.uf] = false; t.classList.remove('invalid'); t.removeAttribute('aria-invalid'); }
+  }
   else if (t.matches('[data-te]')) state.targetEdit[t.dataset.te] = t.value;
-  else if (t.matches('[data-card]')) state.cardForm[t.dataset.card] = t.value;
 });
 
-try { history.replaceState({ step: 'intro', univId: '' }, '', location.pathname + location.search); } catch (e) { /* noop */ }
+state.step = isWelcomed() ? 'intro' : 'welcome';
+try { history.replaceState({ step: state.step, univId: '' }, '', location.pathname + location.search); } catch (e) { /* noop */ }
 render();
 })();
 </script>
