@@ -202,7 +202,8 @@ table.data td.act { width: 44px; text-align: right; padding: 2px 4px; }
 .has-tabbar main { padding-bottom: calc(96px + env(safe-area-inset-bottom)); }
 #tabbar { position: fixed; left: 0; right: 0; bottom: 0; z-index: 10; background: var(--card); border-top: 1px solid var(--border); padding-bottom: env(safe-area-inset-bottom); }
 .tabbar-in { max-width: 640px; margin: 0 auto; display: flex; }
-.tab { font: inherit; position: relative; flex: 1; min-height: 60px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; border: 0; background: none; color: var(--muted); font-size: 0.75rem; font-weight: 700; cursor: pointer; padding: 6px 4px; }
+.tab { font: inherit; position: relative; flex: 1; min-height: 60px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; border: 0; background: none; color: var(--muted); font-size: 0.72rem; font-weight: 700; cursor: pointer; padding: 6px 4px; }
+.tab span { text-align: center; line-height: 1.15; max-width: 8.5em; }
 .tab svg { width: 24px; height: 24px; }
 .tab.on { color: var(--primary); background: var(--primary-soft); }
 .tab:disabled { opacity: 0.35; cursor: not-allowed; }
@@ -226,7 +227,12 @@ table.data td.act { width: 44px; text-align: right; padding: 2px 4px; }
 .app-header-in { position: relative; max-width: 640px; margin: 0 auto; display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 8px 12px; min-height: 56px; }
 .app-title-btn { display: flex; align-items: center; min-height: 44px; padding: 0; border: 0; background: none; cursor: pointer; }
 .app-title-btn:disabled { cursor: default; }
-.app-title-img { height: 40px; width: auto; max-width: min(240px, calc(100vw - 92px)); display: block; object-fit: contain; object-position: left center; }
+.app-title-img { height: 40px; width: auto; max-width: min(240px, calc(100vw - 140px)); display: block; object-fit: contain; object-position: left center; }
+.header-back { border: 0; background: none; color: var(--fg); }
+.header-back:hover { border: 0; color: var(--primary); }
+.manual-item { display: flex; gap: 8px; align-items: flex-start; border: 1px solid var(--border); border-radius: var(--radius); padding: 12px; background: var(--card); }
+.manual-item p { flex: 1; min-width: 0; }
+.manual-date { color: var(--muted); font-size: 0.8rem; }
 .menu-pop { position: absolute; right: 12px; top: calc(100% - 4px); z-index: 21; min-width: 228px; padding: 6px; background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: 0 8px 24px rgba(0, 0, 0, 0.14); }
 .menu-pop button { font: inherit; display: block; width: 100%; text-align: left; min-height: 44px; padding: 8px 12px; border: 0; border-radius: 8px; background: none; color: var(--fg); cursor: pointer; }
 .menu-pop button:hover { background: var(--primary-soft); }
@@ -253,6 +259,7 @@ const KEY_RECORDS = 'akahon-self-review:v3:records';
 const KEY_PROMISES = 'akahon-self-review:v3:promises';
 const KEY_WELCOME = 'akahon-self-review:v3:welcomed';
 const KEY_SCHEDNAMES = 'akahon-self-review:v3:schednames';
+const KEY_MANUAL = 'akahon-self-review:v3:manual';
 /* v1・v2 の保存データ、削除した用語カードのデータ(v3 は読み込まない。「全部消す」のときだけ消す) */
 const KEY_OLD = 'akahon-self-review:v1';
 const KEY_CARDS = 'akahon-self-review:cards:v1';
@@ -261,6 +268,7 @@ const KEY_CARDS = 'akahon-self-review:cards:v1';
 const MAX_UNIVS = 20;
 const MAX_SCHEDS = 5;
 const MAX_SCHEDNAMES = 20;
+const MAX_MANUAL = 10;
 /* カレンダー(.ics)機能。Android での動作確認ができるまで見送り。true にすると画面に出る */
 const ENABLE_CALENDAR = false;
 
@@ -272,9 +280,6 @@ const TIMES = [
   { id: 'tight', label: 'ギリギリ終わった' },
   { id: 'unfinished', label: '時間が足りず、手がつかなかった大問があった' }
 ];
-const STUDY = [
-  { id: '30', label: '30分くらい' }, { id: '60', label: '1時間くらい' }, { id: '120', label: '2時間以上' }
-];
 const LOSS = [
   { id: 'large', label: '大きく落とした' }, { id: 'mid', label: 'そこそこ' }, { id: 'small', label: '少しだけ' }
 ];
@@ -282,19 +287,19 @@ const LOSS_WEIGHT = { large: 3, mid: 2, small: 1 };
 const TIME_WEIGHT = { ok: 0, tight: 1, unfinished: 3 };
 
 const TAGS = [
-  { id: 'unlearned', label: '未習・未対策' },
   { id: 'understanding', label: '理解不足' },
   { id: 'knowledge', label: '知識不足' },
   { id: 'reasoning', label: '考察(実験・グラフ)' },
   { id: 'writing', label: '論述' },
   { id: 'calc', label: '計算・処理' },
   { id: 'careless', label: 'ケアレス' },
-  { id: 'timeshort', label: '時間不足' }
+  { id: 'timeshort', label: '時間不足' },
+  { id: 'stable', label: '目だった課題なし' }
 ];
+const SCORE_TAGS = TAGS.filter((t) => t.id !== 'stable').map((t) => t.id);
 
 const FORMS = [
   { id: 'term', label: '用語・知識', reasons: [
-    { id: 'not_learned', label: '習っていない', tag: 'unlearned' },
     { id: 'forgot', label: '覚えていなかった・うろ覚えだった', tag: 'knowledge' },
     { id: 'confused', label: '似た用語と混同した', tag: 'knowledge' },
     { id: 'no_mech', label: '用語は言えるが、仕組みがわかっていなかった', tag: 'understanding' }
@@ -307,7 +312,7 @@ const FORMS = [
   { id: 'writing', label: '論述', reasons: [
     { id: 'what', label: '何を書けばいいかわからなかった', tag: 'understanding' },
     { id: 'missing', label: '書いたが、要素(キーワード)が足りなかった', tag: 'writing' },
-    { id: 'length', label: '字数に収められなかった', tag: 'writing' },
+    { id: 'length', label: '字数制限に収めようとして時間を浪費した', tag: 'writing' },
     { id: 'notime', label: '時間がなくて書けなかった', tag: 'timeshort' }
   ] },
   { id: 'calc', label: '計算・遺伝', reasons: [
@@ -321,87 +326,99 @@ const FORMS = [
   ] }
 ];
 
-/* first = 2分でできる「最初の一歩」 */
+const CONFIRM_OPTS = [
+  { id: 'note', label: '授業ノート' },
+  { id: 'video', label: '授業動画・e-step' }
+];
+const PRACTICE_BY_REASON = {
+  no_mech: [
+    { id: 'minite', label: 'ミニテ集' },
+    { id: 'tangen13', label: '単元別問題集★1〜3' }
+  ],
+  what: [
+    { id: 'essay', label: '論述問題集' },
+    { id: 'oral', label: '口頭説明' }
+  ],
+  how: [
+    { id: 'exprint', label: '授業で扱った演習教材' },
+    { id: 'tangen_done', label: '単元別問題集の既習問題' }
+  ]
+};
+const KNOW_GOALS = [
+  { id: '80', label: '8割以上' },
+  { id: '90', label: '9割以上' }
+];
+const SEEN_OPTS = [
+  { id: 'yes', label: 'ある' },
+  { id: 'no', label: 'ない' }
+];
+const NEXT_HAND_TAGS = ['reasoning', 'calc', 'careless', 'timeshort'];
+
 const ACTIONS = {
-  unlearned: {
-    title: '未習分野を1つ選んで、基礎を一周する',
-    short: '未習分野を1つ選んで、教科書と基礎問題を一周する',
-    why: '習っていない範囲は、赤本を解いても点になりにくいからです。先に基礎を固めるほうが、次の赤本で伸びます。',
-    first: '教科書の、まだ習っていない分野の章を開いて、見出しを声に出して読む',
-    steps: ['教科書の太字の用語を読む', '基礎問題集の同じ分野を解く', '間違えた問題にチェックをつける'],
-    amount: '1分野を数日', goal: '基礎問題の正答率が8割になる'
-  },
   understanding: {
-    title: '仕組みを、自分の言葉で説明する',
-    short: '教科書を閉じて、仕組みを3行で説明してみる',
-    why: '用語は言えても仕組みがわからないと、少し形が変わった問題で手が止まります。「なぜそうなるか」を言えるようにするのが近道です。',
-    first: '間違えた問題の仕組みを、「〇〇だから△△になる」と1文で言ってみる',
-    steps: ['教科書を閉じる', 'その仕組みを3行で書く', '書けなければ読み直して、矢印(A→B→C)で整理する'],
-    amount: '1テーマ15分', goal: '3行で説明できる'
+    title: 'わからなかった内容を確認し、自分で説明できるようにしよう',
+    short: '確認したあと、問題を解くか口頭で説明して確かめる',
+    why: '内容を確認したあと、自分で説明したり問題を解いたりして確かめるため。',
+    steps: ['授業ノート、または授業動画・e-stepで、間違えた内容に関係する部分を確認する', '提示された教材の問題を解くか、口に出して説明する', '問題演習なら正解して解き方も説明できるか、口頭説明なら何も見ずに最後まで説明できるか確かめる'],
+    amount: '問題演習の量は自分で決める', goal: '選んだ問題を正解し、解き方も説明できた。または、資料を見ずに最後まで口頭説明できた'
   },
   knowledge: {
-    title: '間違えた用語を覚え直す',
-    short: '間違えた用語を10個書き出して、毎日10分見直す',
-    why: '知識がないと、考える以前に手が止まります。ここは地道に覚える分だけ点になります。',
-    first: '間違えた用語を1つ、ノートに書き出す',
-    steps: ['間違えた用語を10個、ノートに書き出す', '答えを隠して、言えるか確かめる', '3日後にもう一度テストする'],
-    amount: '毎日10分', goal: '10個すべて言える'
+    title: '覚えていなかった知識を確認し、ミニテストで目標点を取ろう',
+    short: '知識を確認したあと、時間を空けてミニテ集で確かめる',
+    why: '見直した知識を、時間がたっても自分で答えられるか確かめるため。',
+    steps: ['授業ノート、または授業動画・e-stepで知識を確認する', '少し時間を空けて、ミニテ集の該当テストを解く', '自分が選んだ目標点に届いたか確かめる'],
+    amount: 'ミニテ集1回 約15分', goal: '自分で宣言した目標点を達成できた'
   },
   reasoning: {
-    title: '実験問題を「条件の表」にする',
-    short: '実験問題で、比べる2つの違いを1つだけ書き出す',
-    why: '考察問題は、「何と何を比べているか」が整理できると一気に解きやすくなります。',
-    first: '赤本の実験問題を1つ開いて、比べている2つに線を引く',
-    steps: ['比べる2つの実験を探す', '違う点を1つだけ書く', '結果の違いが何を意味するか、1文で書く'],
-    amount: '1日1題', goal: '条件の違いを1分で言える'
+    title: '考察問題を振り返り、次に同じような問題が出たときの解き方を決めよう',
+    short: '解説を確認し、次の解き方を1文で決める',
+    why: '今回の答えを確認するだけでなく、次に似た問題を解くときに使える方法を見つけるため。',
+    steps: ['授業で扱ったことがある問題なら、その教材に戻る。初見なら赤本の解説を読む', 'なぜその解答になるのか、自分で説明できるようにする', '次に似た問題が出たとき、どこに注目し、どのように読み、どんな順番で考えるかを決める'],
+    amount: '次への一手を1つ', goal: '解答の理由を説明でき、次に使う具体的な解き方を1文で入力できた'
   },
   writing: {
-    title: '模範解答と自分の答案を比べる',
-    short: '模範解答のキーワードに○をつけて、抜けを数える',
-    why: '論述は、必要なキーワードを落とさないことが得点の中心です。抜けのパターンがわかると直せます。',
-    first: '模範解答のキーワードを1つだけ○で囲む',
-    steps: ['模範解答のキーワードに○をつける', '自分の答案で、抜けているものを数える', '字数内で書き直す'],
-    amount: '1日1問', goal: '抜けが0〜1個になる'
+    title: '論述で足りなかった要素を確認し、次に書けるようにしよう',
+    short: '既習なら解き直し、初見なら答案と模範解答を比べる',
+    why: '以前解いた問題なら解き直し、初見なら模範解答との比較で不足した要素を確認するため。',
+    steps: ['今までの教材で同じ・似た問題に出会ったことがあるか確認する', 'あるなら該当する教材の問題を解き直す。ないなら自分の答案と模範解答を比べて足りなかった要素を確認する'],
+    amount: '', goal: '足りなかった要素を挙げられる'
+  },
+  writingLength: {
+    title: '論述を書く前に、必要な要素と説明の流れをメモしよう',
+    short: '箇条書きとフローチャートを作ってから書き始める',
+    why: '説明の流れをつなぐために必要な内容が、論述の加点ポイントになるから。',
+    steps: ['解答に入れるべき要素を箇条書きにする', '要素同士のつながりを、矢印などを使った簡単なフローチャートにする', '必要な要素と説明の流れを確認してから答案を書き始める'],
+    amount: '', goal: '必要な要素の箇条書きとフローチャートを作り、それを確認して答案を書けた'
   },
   calc: {
-    title: '同じ問題を、途中式を省かず解き直す',
-    short: '途中式を省かずに、同じ型の問題を解き直す',
-    why: '解き方はわかっているので、処理の精度を上げれば取れる点です。急ぐほどミスが増えます。',
-    first: '間違えた計算問題の、最初の式を1行だけ書いてみる',
-    steps: ['解き方をもう一度確認する', '途中式をすべて書いて解く', 'ミスした箇所に印をつける'],
-    amount: '1日2問', goal: '同じ型を連続で正解できる'
+    title: '計算ミスの原因を見つけ、次に同じミスをしない方法を決めよう',
+    short: '解き直して対策を決め、似た問題で実行する',
+    why: '同じミスを防ぐ方法を考え、別の問題でも使えるか確かめるため。',
+    steps: ['赤本でどこを間違えたか確認し、同じ問題を解き直す', '次に同じミスを防ぐための具体的な対策を1つ決める', '今までの教材から似た計算問題を選び、その対策を使って解く'],
+    amount: '', goal: '対策を1文で入力し、似た問題で実行できた'
   },
   careless: {
-    title: '問題文の条件に線を引く習慣をつける',
-    short: '「誤っているもの」「すべて」「単位」に線を引く',
-    why: '読み違いは、知識があっても失点します。習慣で防げる、いちばんもったいない失点です。',
-    first: '赤本の設問を3つ開いて、条件の言葉(「誤っているもの」など)に線を引く',
-    steps: ['「誤っているもの」「すべて」「単位」に線を引く', '見直しチェック3項目(単位・条件・選択肢の数)を確認する', '次の演習で実行する'],
-    amount: '次の1回から', goal: '線を引き忘れない'
+    title: '読み間違えた原因を見つけ、次に同じミスをしない方法を決めよう',
+    short: '読み違いを確認し、次の対策を1文で決める',
+    why: '次の赤本で同じミスを繰り返さないため。',
+    steps: ['赤本の問題を見直し、どこを読み間違えたか確認する', '次に同じミスを防ぐための具体的な行動を1つ決める'],
+    amount: '対策を1つ', goal: '次の問題で実行する対策を1文で入力できた'
   },
   timeshort: {
-    title: '大問ごとの目標時間を決めて解く',
-    short: '大問ごとの目安時間を決めて、タイマーで解く',
-    why: '時間が足りないと、解けるはずの問題にも手がつかなくなります。配分を決めて練習するだけで変わります。',
-    first: '赤本の各大問の上に、目安の時間を書き込む',
-    steps: ['大問ごとの目安時間を書き込む', 'タイマーを使って解く', '「3分で手が止まったら飛ばす」ルールを決める'],
-    amount: '次の1回', goal: '全部の大問に手をつけて終わる'
+    title: '時間が足りなかった原因を見つけ、次の赤本で変える行動を決めよう',
+    short: '時間を使いすぎた場面を確認し、次に変える行動を1文で決める',
+    why: '時間を使いすぎた場面を確認し、次の赤本で同じことを繰り返さないため。',
+    steps: ['赤本を振り返り、どの問題で時間を使いすぎたか確認する', '時間が足りなくなった原因を考える', '次の赤本で変える具体的な行動を1つ決める'],
+    amount: '対策を1つ', goal: '時間不足の原因を挙げ、対策を1文で入力できた'
   },
   stable: {
-    title: '同じ条件で、もう一度再現できるか確かめる',
-    short: '同じ時間・条件で別の年度を解いて、再現できるか確かめる',
-    why: '今回の入力からは、はっきりした課題は見つかりませんでした。調子が良かっただけか、実力かを確かめましょう。',
-    first: '次に解く別の年度の赤本を、机に出しておく',
-    steps: ['別の年度を、同じ制限時間で解く', '間違えた設問があれば、このツールで原因を選ぶ', '2回続けて同じ結果なら、実力と考える'],
-    amount: '次の1回', goal: '2回連続で目標点に届く'
+    title: '今回うまくいったことを1つ見つけよう',
+    short: 'うまくいった行動を1文で残す',
+    why: 'うまくいった行動を振り返り、次の赤本でも活かせるようにするため。',
+    steps: ['今回の赤本で、うまくいった行動を1つ思い出す', 'その行動を次の赤本でも続けるか考える'],
+    amount: '振り返る行動を1つ', goal: 'うまくいった行動を1文で入力できた'
   }
 };
-
-const SCOPES = [
-  { id: 'first', label: '最初の一歩だけ(2分)' },
-  { id: 'step1', label: 'ステップ1つ目まで' },
-  { id: 'all', label: 'ぜんぶ' }
-];
 
 const FU_STATUS = { done: 'やった', partial: '一部だけやった', none: 'できなかった' };
 const FU_REASONS = [
@@ -412,10 +429,10 @@ const FU_REASONS = [
   { id: 'other', label: 'その他' }
 ];
 const FU_REASON_MSG = {
-  time: '時間が取れなかったなら、次は2分の「最初の一歩」だけ約束しましょう。',
+  time: '時間が取れなかったなら、次は量を減らして約束しましょう。',
   forgot: '忘れていたなら、次は約束カードをスクリーンショットして、待ち受けにしておきましょう。',
   hard: '難しかったなら、量を減らすより、先生に聞く約束にするのがおすすめです。',
-  mood: 'やる気が出ない日は誰にでもあります。タイマー2分で、最初の一歩だけやってみましょう。',
+  mood: 'やる気が出ない日は誰にでもあります。量を減らして、やりきれる形にしましょう。',
   other: 'うまくいかなかった理由に気づけたことが前進です。先生にも話してみてください。'
 };
 
@@ -442,8 +459,15 @@ const SERIES_STYLES = [
 /* =========================================================
  * 2. 判断ロジック(純粋関数)
  * ========================================================= */
-const TAG_IDS = TAGS.map((t) => t.id);
+const TAG_IDS = SCORE_TAGS;
 const tagLabel = (id) => (TAGS.find((t) => t.id === id) || { label: id }).label;
+const pickedTag = () => (state.pickedTag || (state.result && state.result.d ? state.result.d.primary : 'stable'));
+const needsNextHand = (tag) => NEXT_HAND_TAGS.indexOf(tag) >= 0;
+const hasWritingMissing = (a) => (a.misses || []).some((m) => m.reason === 'missing');
+const actionOf = (tag, a) => {
+  if (tag === 'writing' && a && !hasWritingMissing(a)) return ACTIONS.writingLength;
+  return ACTIONS[tag] || { title: '', short: '', why: '', steps: [], amount: '', goal: '' };
+};
 const findForm = (id) => FORMS.find((f) => f.id === id);
 const findReason = (formId, reasonId) => {
   const f = findForm(formId);
@@ -466,10 +490,6 @@ function decide(a) {
   const ranked = TAG_IDS
     .filter((t) => scores[t] > 0)
     .sort((x, y) => (scores[y] - scores[x]) || (TAG_IDS.indexOf(x) - TAG_IDS.indexOf(y)));
-  if (scores.unlearned > 0) {
-    ranked.splice(ranked.indexOf('unlearned'), 1);
-    ranked.unshift('unlearned');
-  }
   return { scores, ranked, primary: ranked[0] || 'stable', secondary: ranked[1] || null };
 }
 
@@ -488,19 +508,81 @@ const normSched = (s) => {
   return k || nfkc(s);
 };
 
-/* 約束の内容(文章) */
-function firstText(tag) {
-  return ACTIONS[tag].first;
+function understandingReasons(a) {
+  const ids = [];
+  (a.misses || []).forEach((m) => {
+    const r = findReason(m.form, m.reason);
+    if (r && r.tag === 'understanding' && ids.indexOf(r.id) < 0) ids.push(r.id);
+  });
+  return ids;
 }
-function promiseText(tag, scope, a) {
-  const act = ACTIONS[tag];
-  if (scope === 'first') return firstText(tag);
-  if (scope === 'step1') return `${act.steps[0]}。目安は「${act.amount}」`;
-  return `${act.title}:${act.steps.join(' → ')}。目安は「${act.amount}」`;
+function practiceOptions(a) {
+  const out = []; const seen = {};
+  understandingReasons(a).forEach((id) => {
+    (PRACTICE_BY_REASON[id] || []).forEach((o) => {
+      if (!seen[o.id]) { seen[o.id] = true; out.push(o); }
+    });
+  });
+  if (!out.length) {
+    ['no_mech', 'what', 'how'].forEach((id) => PRACTICE_BY_REASON[id].forEach((o) => {
+      if (!seen[o.id]) { seen[o.id] = true; out.push(o); }
+    }));
+  }
+  return out;
 }
-function defaultScope(a, prevProm) {
-  if (prevProm && ['partial', 'held', 'released', 'replaced'].includes(prevProm.status)) return 'first';
-  return a.study === '30' ? 'first' : (a.study === '60' ? 'step1' : 'all');
+function optionLabel(list, id) {
+  const hit = list.find((o) => o.id === id);
+  return hit ? hit.label : '';
+}
+function actionView(tag, a) {
+  const act = actionOf(tag, a);
+  const steps = act.steps.slice();
+  if (tag === 'understanding') {
+    const confirm = optionLabel(CONFIRM_OPTS, a.confirm);
+    const practice = optionLabel(practiceOptions(a), a.practice);
+    if (confirm) steps[0] = confirm + 'で、間違えた内容に関係する部分を確認する' + (a.confirm === 'video' ? '(関係する部分だけ)' : '');
+    if (practice) {
+      steps[1] = practice === '口頭説明'
+        ? 'ノートを閉じて、口に出して説明する'
+        : practice + 'の問題を解く。量は自分で決める';
+    }
+  }
+  if (tag === 'knowledge') {
+    const goal = optionLabel(KNOW_GOALS, a.knowGoal);
+    if (goal) {
+      steps[2] = '目標の' + goal + 'に届いたか確かめる';
+    }
+  }
+  if (tag === 'reasoning') {
+    if (a.seen === 'yes') steps[0] = '授業で扱った教材に戻り、その問題を確認する';
+    if (a.seen === 'no') steps[0] = '赤本の解説を読む';
+  }
+  if (tag === 'writing' && hasWritingMissing(a)) {
+    if (a.seen === 'yes') steps[1] = '該当する教材の問題を解き直す';
+    if (a.seen === 'no') steps[1] = '自分の答案と模範解答を比べて、足りなかった要素を確認する';
+  }
+  return {
+    title: act.title, short: act.short, why: act.why, steps,
+    amount: act.amount,
+    goal: (tag === 'knowledge' && a.knowGoal) ? ('目標の' + optionLabel(KNOW_GOALS, a.knowGoal) + 'を達成できた') : act.goal
+  };
+}
+function promiseText(tag, a) {
+  const act = actionView(tag, a);
+  const extra = act.amount ? '。目安は「' + act.amount + '」' : '';
+  return act.title + '。' + act.steps.join(' → ') + extra;
+}
+function nextHandPrompt(tag) {
+  if (tag === 'reasoning') return '次に同じような問題が出たら、どう解く？';
+  if (tag === 'calc') return '次に同じミスをしないための対策は？';
+  if (tag === 'careless') return '次に同じミスをしないための具体的な行動は？';
+  if (tag === 'timeshort') return '次の赤本で変える行動は？';
+  return '次への一手(任意)';
+}
+function nextHandHint(tag) {
+  if (tag === 'reasoning') return '例: 実験群と対照群で異なる条件に印をつける';
+  if (tag === 'careless') return '例: 「正しいもの」「誤っているもの」の指示に丸をつける';
+  return '手の動かし方・読み方など、具体的な行動を1文で';
 }
 
 /* 日付・日時。when は '' (あとで決める) / 'YYYY-MM-DD' (日付だけ) / 'YYYY-MM-DDTHH:MM' */
@@ -578,7 +660,7 @@ function buildIcs(p) {
     `UID:${uid}`,
     `DTSTAMP:${icsStamp(toLocalIso(new Date()))}`,
     ...when,
-    `SUMMARY:${icsEscape('生物の約束: ' + (ACTIONS[p.tag] ? ACTIONS[p.tag].title : ''))}`,
+    `SUMMARY:${icsEscape('生物の約束: ' + (actionOf(p.tag).title || ''))}`,
     `DESCRIPTION:${icsEscape(p.text)}`,
     'BEGIN:VALARM', 'ACTION:DISPLAY', `DESCRIPTION:${icsEscape('生物の約束の時間です')}`,
     allDay ? 'TRIGGER:PT9H' : 'TRIGGER:-PT5M',
@@ -611,6 +693,43 @@ const loadRecs = () => readJson(KEY_RECORDS).sort((x, y) => x.ts - y.ts);
 const saveRecs = (arr) => writeJson(KEY_RECORDS, arr);
 const loadProms = () => readJson(KEY_PROMISES);
 const saveProms = (arr) => writeJson(KEY_PROMISES, arr);
+function loadManual() {
+  try {
+    const raw = localStorage.getItem(KEY_MANUAL);
+    if (!raw) return { goods: [], nexts: [] };
+    const o = JSON.parse(raw);
+    return {
+      goods: Array.isArray(o.goods) ? o.goods : [],
+      nexts: Array.isArray(o.nexts) ? o.nexts : []
+    };
+  } catch (e) { return { goods: [], nexts: [] }; }
+}
+function saveManual(m) {
+  try { localStorage.setItem(KEY_MANUAL, JSON.stringify(m)); return true; } catch (e) { return false; }
+}
+function addManualLine(kind, text, recordId) {
+  const t = String(text || '').trim();
+  if (!t) return true;
+  const m = loadManual();
+  m[kind].unshift({ id: newId('m'), text: t, ts: Date.now(), recordId: recordId || '' });
+  m[kind] = m[kind].slice(0, MAX_MANUAL);
+  return saveManual(m);
+}
+function removeManualLine(kind, id) {
+  const m = loadManual();
+  m[kind] = m[kind].filter((x) => x.id !== id);
+  return saveManual(m);
+}
+function flushManual() {
+  const good = String(state.a.good || '').trim();
+  const next = String(state.a.next || '').trim();
+  const rec = currentRecord();
+  const id = rec ? rec.id : '';
+  const prev = state.manualFlushed || { good: '', next: '' };
+  if (good && good !== prev.good) addManualLine('goods', good, id);
+  if (next && next !== prev.next) addManualLine('nexts', next, id);
+  state.manualFlushed = { good, next };
+}
 
 const isWelcomed = () => { try { return localStorage.getItem(KEY_WELCOME) === '1'; } catch (e) { return true; } };
 const markWelcomed = () => { try { localStorage.setItem(KEY_WELCOME, '1'); } catch (e) { /* noop */ } };
@@ -698,16 +817,18 @@ function latestPromiseOf(proms, recordId) {
 /* =========================================================
  * 4. AIに貼る文章
  * ========================================================= */
-function buildPrompt(a, d, includeMemo, prevProm) {
+function buildPrompt(a, d, prevProm) {
   const L = [];
+  const tag = pickedTag();
+  const act = actionView(tag, a);
   L.push('あなたは大学受験の生物を教える先生役です。');
   L.push('以下は、高校3年生の受験生が赤本(過去問)を解いたあとの自己分析の結果です。');
   L.push('');
   L.push('【診断結果(この優先順位は変えないでください)】');
   const roundLabel = (ROUNDS.find((r) => r.id === a.round) || {}).label || '';
   L.push(`- 赤本: ${roundLabel}、全${a.full}問中 ${a.score}問正解(${pct(a.score, a.full)}%)`);
-  L.push(`- 最優先の課題: ${d.primary === 'stable' ? '(はっきりした課題なし)' : tagLabel(d.primary)}`);
-  if (d.secondary) L.push(`- 次点の課題: ${tagLabel(d.secondary)}`);
+  L.push(`- 選んだ課題: ${tagLabel(tag)}`);
+  if (d.ranked.length > 1) L.push(`- 失点の内訳: ${d.ranked.map((t) => tagLabel(t)).join(' / ')}`);
   L.push(`- 時間配分: ${(TIMES.find((t) => t.id === a.time) || {}).label || ''}`);
   if (a.misses.length) {
     L.push('- 失点した設問:');
@@ -716,16 +837,17 @@ function buildPrompt(a, d, includeMemo, prevProm) {
       L.push(`  ${i + 1}. 形式: ${f ? f.label : ''} / 原因: ${r ? r.label : ''} / 失点: ${l ? l.label : ''}`);
     });
   }
-  L.push(`- 1日に生物に使える時間: ${(STUDY.find((s) => s.id === a.study) || {}).label || ''}`);
+  L.push(`- 選んだアクション: ${act.title}`);
+  if (a.next.trim()) L.push(`- 次への一手: ${a.next.trim()}`);
+  if (a.good.trim()) L.push(`- よかったところ: ${a.good.trim()}`);
   if (prevProm && prevProm.status !== 'open') {
     const label = prevProm.status === 'done' ? 'やった'
       : (prevProm.status === 'partial' ? '一部だけやった' : 'できなかった');
-    L.push(`- 前回の約束(${ACTIONS[prevProm.tag] ? ACTIONS[prevProm.tag].title : ''})の実行: ${label}`);
+    L.push(`- 前回の約束(${actionOf(prevProm.tag, a).title || ''})の実行: ${label}`);
   }
-  if (includeMemo && a.memo.trim()) L.push(`- 生徒のメモ: ${a.memo.trim()}`);
   L.push('');
   L.push('【お願い】');
-  L.push('- 上の診断結果の優先順位を前提に、次の赤本までにやることを一緒に考えてください。');
+  L.push('- 上の診断結果と、生徒が選んだアクションを前提に、次の赤本までにやることを一緒に考えてください。');
   L.push('- 難しい言葉は避けて、短く、やさしく答えてください。一度に出す提案は1つまでにしてください。');
   L.push('- 最初に、私の理解度を確かめる質問を1〜2個してください。');
   L.push('- 個人情報(名前・学校名など)は聞かないでください。');
@@ -736,11 +858,12 @@ function buildPrompt(a, d, includeMemo, prevProm) {
 /* =========================================================
  * 5. 状態
  * ========================================================= */
-const STEPS = ['basic', 'time', 'misses', 'study', 'memo'];
+const STEPS = ['basic', 'time', 'misses'];
 /* score = 正答数、full = 全問題数(保存データの項目名は v3 のまま) */
 const newAnswers = () => ({
   round: '', year: '', sched: '', score: '', full: '',
-  time: '', misses: [], study: '', memo: ''
+  time: '', misses: [],
+  good: '', next: '', seen: '', knowGoal: '', confirm: '', practice: ''
 });
 const newMiss = () => ({ label: '', form: '', reason: '', loss: '' });
 const newWhenState = (extra) => Object.assign({ whenOpt: '', date: '', time: '', text: '', base: '', edited: false }, extra);
@@ -764,8 +887,9 @@ const state = {
   savedPromise: null,
   promise: newWhenState({ scope: 'first' }),
   promiseError: '',
+  pickedTag: '',
+  manualFlushed: { good: '', next: '' },
   showAi: false,
-  includeMemo: false,
   followup: { status: '', reason: '' },
   followupMsg: '',
   followupError: '',
@@ -981,7 +1105,7 @@ const FIGHT_SVG = `<svg viewBox="0 0 180 96" role="img" aria-label="もう少し
   </g>
 </svg>`;
 function scrapHtml(p, opts) {
-  const act = ACTIONS[p.tag];
+  const act = actionOf(p.tag, state.a);
   const done = p.status === 'done';
   const partial = p.status === 'partial';
   const pop = opts && opts.animate ? ' pop' : '';
@@ -991,7 +1115,7 @@ function scrapHtml(p, opts) {
         <p class="scrap-head"><span>やくそく</span></p>
         <p class="scrap-when">${esc(fmtWhen(p.when))}</p>
         <p class="scrap-body">${esc(p.text)}</p>
-        ${act ? `<p class="scrap-goal">めじるし: <mark>${esc(act.goal)}</mark></p>` : ''}
+        ${(act && act.goal) ? `<p class="scrap-goal">めじるし: <mark>${esc(act.goal)}</mark></p>` : ''}
       </div>
       ${done ? `<div class="stamp${pop}">${STAMP_SVG}</div>` : ''}
       ${partial ? `<div class="fight${pop}">${FIGHT_SVG}</div>` : ''}
@@ -1228,6 +1352,20 @@ function renderUniv() {
 }
 
 /* --- 入力 --- */
+function manualPreviewHtml() {
+  const m = loadManual();
+  const nexts = m.nexts.slice(0, 3);
+  const goods = m.goods.slice(0, 3);
+  if (!nexts.length && !goods.length) return '';
+  const line = (x) => `<li>${esc(x.text)}</li>`;
+  return `
+    <section class="notice stack-sm" aria-labelledby="man-prev">
+      <h2 id="man-prev" style="margin:0;font-size:1rem">わたしのトリセツ(直近)</h2>
+      <p class="muted">次の赤本の前に、一度目を通しましょう。試験中は見ません。</p>
+      ${nexts.length ? `<p><strong>次への一手</strong></p><ul class="plain">${nexts.map(line).join('')}</ul>` : ''}
+      ${goods.length ? `<p><strong>よかったところ</strong></p><ul class="plain">${goods.map(line).join('')}</ul>` : ''}
+    </section>`;
+}
 function renderBasic() {
   const a = state.a;
   const univ = getUniv(state.univId);
@@ -1236,6 +1374,7 @@ function renderBasic() {
       ${progress('basic')}
       <h1 tabindex="-1">今回の赤本について</h1>
       <p class="muted">${esc(univ.name)} の赤本を登録します。</p>
+      ${manualPreviewHtml()}
       <label class="field"><span>解いた年度</span>
         <input type="text" inputmode="numeric" pattern="[0-9]*" maxlength="4" autocomplete="off" placeholder="例: 2025" data-text="year" value="${esc(a.year)}"></label>
       <div class="sched-field stack-sm">
@@ -1306,55 +1445,110 @@ function renderMisses() {
       ${a.misses.map(renderMiss).join('')}
       <div><button class="btn" data-action="add-miss" ${a.misses.length >= 3 ? 'disabled' : ''}>設問を追加する(${a.misses.length}/3)</button></div>
       ${errorHtml(state.error)}
-      ${nav('misses')}
+      ${nav('misses', '結果を見る')}
     </div>`;
 }
-function renderStudy() {
-  const a = state.a;
+function renderManual() {
+  const m = loadManual();
+  const block = (title, kind, list, empty) => `
+    <section class="stack-sm" aria-labelledby="man-${kind}">
+      <h2 id="man-${kind}">${title}</h2>
+      ${list.length ? list.map((x) => `
+        <div class="manual-item">
+          <div style="flex:1;min-width:0">
+            <p>${esc(x.text)}</p>
+            <p class="manual-date">${esc(new Date(x.ts).toLocaleDateString('ja-JP'))}</p>
+          </div>
+          <button class="icon-btn danger" data-action="remove-manual" data-kind="${kind}" data-id="${esc(x.id)}" aria-label="この行を消す">${ICON_TRASH}</button>
+        </div>`).join('') : `<p class="muted">${empty}</p>`}
+    </section>`;
   return `
     <div class="stack">
-      ${progress('study')}
-      <h1 tabindex="-1">使える時間</h1>
-      <fieldset>
-        <legend>1日に、生物に使える時間はどのくらいですか?</legend>
-        ${radios('study', STUDY, a.study, 'data-bind="study"')}
-      </fieldset>
-      <p class="muted">時間に合わせて、提案の量を調整します。</p>
-      ${errorHtml(state.error)}
-      ${nav('study')}
-    </div>`;
-}
-function renderMemo() {
-  const a = state.a;
-  return `
-    <div class="stack">
-      ${progress('memo')}
-      <h1 tabindex="-1">ひとこと(任意)</h1>
-      <label class="field">
-        <span>いちばん悔しかった問題と、その理由があれば書いてください。書かなくても結果は出ます。</span>
-        <textarea maxlength="400" data-text="memo" placeholder="例: 光合成の実験問題で、グラフの意味がわからなくて手が止まった">${esc(a.memo)}</textarea>
-      </label>
-      <p class="muted">ここに書いた内容は、この画面にだけ表示されます。名前や学校名は書かないでください。</p>
-      ${nav('memo', '結果を見る')}
+      <h1 tabindex="-1">わたしのトリセツ</h1>
+      <p>次の赤本までに見返す、自分用のメモです。試験の最中には使いません。赤本を記録すると、ここに残ります。</p>
+      ${block('次への一手', 'nexts', m.nexts, 'まだありません。結果の「次への一手」に書くと、ここに溜まります。')}
+      ${block('よかったところ', 'goods', m.goods, 'まだありません。結果の「よかったところ」に書くと、ここに溜まります。')}
     </div>`;
 }
 
 /* --- 結果 --- */
-function actionHtml(tag, a, opts) {
-  const act = ACTIONS[tag];
-  const steps = opts.onlyFirst ? act.steps.slice(0, 1) : act.steps;
+function actionHtml(tag, a) {
+  const act = actionView(tag, a);
   return `
     <div class="stack">
       <div>
-        <p class="muted">最優先は「${esc(tag === 'stable' ? '課題なし' : tagLabel(tag))}」</p>
+        <p class="muted">選んだ課題は「${esc(tagLabel(tag))}」</p>
         <h2>${esc(act.title)}</h2>
       </div>
       <p>${esc(act.why)}</p>
-      <ol class="steps">${steps.map((s) => `<li>${esc(s)}</li>`).join('')}</ol>
-      ${opts.onlyFirst ? '<p class="notice">時間が少ないので、まず最初のひとつだけでOKです。慣れたら続きもやってみましょう。</p>' : ''}
-      <dl class="kv"><dt>目安</dt><dd>${esc(act.amount)}</dd></dl>
+      <ol class="steps">${act.steps.map((s) => `<li>${esc(s)}</li>`).join('')}</ol>
+      ${act.amount ? `<dl class="kv"><dt>目安</dt><dd>${esc(act.amount)}</dd></dl>` : ''}
       <p class="goal"><strong>終わりの目印:</strong> ${esc(act.goal)}</p>
     </div>`;
+}
+function tagChoiceHtml(d) {
+  if (d.ranked.length <= 1) return '';
+  const tag = pickedTag();
+  return `
+    <fieldset>
+      <legend>次の赤本までに取り組む課題を、1つ選んでください</legend>
+      ${radios('pick-tag', d.ranked.map((id) => ({ id, label: tagLabel(id) })), tag, 'data-pick="1"', 'col')}
+    </fieldset>
+    <p class="muted">数字が大きいほど、点を落とした影響が大きかった課題です。1本だけ選んで進みます。</p>`;
+}
+function extraChoiceHtml(tag, a) {
+  if (tag === 'understanding') {
+    return `
+      <fieldset>
+        <legend>何で確認しますか?</legend>
+        ${radios('confirm', CONFIRM_OPTS, a.confirm, 'data-ch="confirm"', 'col')}
+      </fieldset>
+      <fieldset>
+        <legend>どうやって確かめますか?(優先順位はありません。自分がやるほうを選んでください)</legend>
+        ${radios('practice', practiceOptions(a), a.practice, 'data-ch="practice"', 'col')}
+      </fieldset>`;
+  }
+  if (tag === 'knowledge') {
+    return `
+      <fieldset>
+        <legend>ミニテ集の目標点は?</legend>
+        ${radios('knowGoal', KNOW_GOALS, a.knowGoal, 'data-ch="knowGoal"')}
+      </fieldset>
+      <p class="muted">知識を確認して終わりにせず、少し時間を空けてから解いて確かめてください。間隔の長さは自分で決めてよいです。</p>`;
+  }
+  if (tag === 'reasoning') {
+    return `
+      <fieldset>
+        <legend>授業で扱ったことがある問題ですか?</legend>
+        ${radios('seen', SEEN_OPTS, a.seen, 'data-ch="seen"')}
+      </fieldset>`;
+  }
+  if (tag === 'writing' && hasWritingMissing(a)) {
+    return `
+      <fieldset>
+        <legend>今までの教材で同じ・似た問題に出会ったことがありますか?</legend>
+        ${radios('seen', SEEN_OPTS, a.seen, 'data-ch="seen"', 'col')}
+      </fieldset>
+      <p class="muted">論述問題集に限りません。ミニテ集、単元別問題集、演習教材など、今まで使った教材すべてが対象です。</p>`;
+  }
+  return '';
+}
+function manualFieldsHtml(tag, a) {
+  const nextReq = needsNextHand(tag);
+  const goodReq = tag === 'stable';
+  return `
+    <section class="card stack" aria-labelledby="man-in">
+      <h2 id="man-in">わたしのトリセツに残す</h2>
+      <p class="muted">試験の最中には見ません。次の赤本の前に、自分で見返すためのメモです。</p>
+      <label class="field">
+        <span>${esc(nextHandPrompt(tag))}${nextReq ? '' : ' (任意)'}</span>
+        <textarea class="short" maxlength="120" data-text="next" placeholder="${esc(nextHandHint(tag))}">${esc(a.next)}</textarea>
+      </label>
+      <label class="field">
+        <span>${goodReq ? '今回うまくいった行動を1つ書こう' : 'よかったところ(任意)'}</span>
+        <textarea class="short" maxlength="120" data-text="good" placeholder="例: 実験の条件には印をつけられた">${esc(a.good)}</textarea>
+      </label>
+    </section>`;
 }
 
 /* 「いつやるか」と「やること(書き換え可)」の入力欄。target は state のどの項目を編集するか */
@@ -1397,11 +1591,7 @@ function promiseHtml(d, a) {
   return `
     <section class="card card-accent stack" aria-labelledby="pf">
       <h2 id="pf">約束する</h2>
-      <p>提案を「やるかも」で終わらせないために、いつ・どこまでやるか決めましょう。</p>
-      <fieldset>
-        <legend>どこまでやりますか?</legend>
-        ${radios('pscope', SCOPES, p.scope, 'data-pr="scope" data-prt="promise"', 'col')}
-      </fieldset>
+      <p>提案を「やるかも」で終わらせないために、いつ・どこまでやるか決めましょう。量は自分で決めてよく、複数日に分けても大丈夫です。</p>
       ${textFieldHtml(p, 'promise')}
       ${whenFieldsHtml(p, 'promise')}
       ${errorHtml(state.promiseError)}
@@ -1443,7 +1633,7 @@ function compareHtml(res, d, a) {
   const diff = cr - pr;
   const diffText = diff > 0 ? `+${diff}` : String(diff);
   const same = prev.primary === d.primary;
-  const prevLabel = prev.primary === 'stable' ? '課題なし' : tagLabel(prev.primary);
+  const prevLabel = tagLabel(prev.primary);
   const pp = res.prevProm;
   let fu = '';
   if (pp) {
@@ -1457,24 +1647,22 @@ function compareHtml(res, d, a) {
       <p class="muted">${res.prevSame ? '同じ大学の前回と比べています。' : '前回(別の大学)と比べています。'}</p>
       <p>正答率: 前回 ${pr}%(${esc(prev.date)})→ 今回 ${cr}%(${diffText}ポイント)</p>
       ${same
-        ? `<p>前回と同じ「${esc(prevLabel)}」が、今回も最優先です。前回のアクションは続けられましたか?続かなかったなら、時間を半分にして「最初の一歩」だけからやり直せば十分です。</p>`
-        : `<p>前回の最優先だった「${esc(prevLabel)}」は、今回は最優先ではなくなりました。課題が入れ替わるのは、前に進んでいる証拠です。</p>`}
+        ? `<p>前回と同じ「${esc(prevLabel)}」が、今回も上位です。前回のアクションは続けられましたか?</p>`
+        : `<p>前回の課題だった「${esc(prevLabel)}」は、今回は一番ではありません。課題が入れ替わるのは、前に進んでいる証拠です。</p>`}
       ${fu}
     </section>`;
 }
 
 function renderResult() {
   const a = state.a;
-  const { d, prevProm } = state.result;
+  const { d } = state.result;
+  const tag = pickedTag();
   const cr = pct(a.score, a.full);
   const maxScore = Math.max(1, ...d.ranked.map((t) => d.scores[t]));
   const lead = a.round === '1'
     ? '1回目は、点数が低くて当たり前です。今日わかったことが、いちばんの収穫です。'
     : '赤本を重ねるほど、点数よりも「なぜ落としたか」を見る力が大事になります。';
-  const onlyFirst = a.study === '30';
-  const showSecondary = d.secondary && a.study !== '30';
-  const prompt = buildPrompt(a, d, state.includeMemo, prevProm);
-  const hasMemo = a.memo.trim().length > 0;
+  const prompt = buildPrompt(a, d, state.result.prevProm);
   return `
     <div class="stack">
       <h1 tabindex="-1">結果</h1>
@@ -1494,22 +1682,18 @@ function renderResult() {
               <div class="bar"><span style="width:${Math.round((d.scores[t] / maxScore) * 100)}%"></span></div>
               <span>${d.scores[t]}</span>
             </div>`).join('')}
-        </div>
-        <p class="muted">数字が大きいほど、点を落とした影響が大きかった課題です。</p>` : '<p>はっきりした課題は見つかりませんでした。</p>'}
+        </div>` : '<p>目だった課題は見つかりませんでした。</p>'}
+        ${tagChoiceHtml(d)}
       </section>
 
-      <section class="card" aria-labelledby="top">
-        <h2 id="top" style="margin-bottom:12px">次の赤本までにやること</h2>
-        ${actionHtml(d.primary, a, { onlyFirst })}
+      <section class="card stack" aria-labelledby="top">
+        <h2 id="top">次の赤本までにやること</h2>
+        ${extraChoiceHtml(tag, a)}
+        ${actionHtml(tag, a)}
       </section>
 
+      ${manualFieldsHtml(tag, a)}
       ${promiseHtml(d, a)}
-
-      ${showSecondary ? `
-      <section class="card stack-sm" aria-labelledby="second">
-        <h2 id="second">余力があれば</h2>
-        <p><strong>${esc(tagLabel(d.secondary))}</strong>: ${esc(ACTIONS[d.secondary].short)}</p>
-      </section>` : ''}
 
       ${trendHtml()}
       ${compareHtml(state.result, d, a)}
@@ -1528,7 +1712,6 @@ function renderResult() {
             <li>AIの答えは、間違うことがあります。迷ったら先生に聞いてください。</li>
           </ul>
         </div>
-        ${hasMemo ? `<label class="row"><input type="checkbox" id="include-memo" ${state.includeMemo ? 'checked' : ''}> <span>「ひとこと」の内容も、AIに渡す文章に入れる</span></label>` : ''}
         <label class="field">
           <span>AIに渡す文章(中身を読んでから使ってください)</span>
           <textarea id="prompt-text" readonly style="min-height:260px">${esc(prompt)}</textarea>
@@ -1561,7 +1744,6 @@ function renderHold() {
       ${held.map((p) => {
         const rec = recs.find((r) => r.id === p.recordId);
         const reason = (FU_REASONS.find((r) => r.id === p.reason) || {}).label;
-        const canShrink = p.scope !== 'first';
         return `
         <section class="card stack">
           <dl class="kv">
@@ -1572,7 +1754,7 @@ function renderHold() {
           </dl>
           ${rp && rp.id === p.id ? `
           <div class="stack">
-            <p class="notice">${canShrink ? 'いちばん小さい形(2分でできる「最初の一歩」)にしました。' : '日付を決め直して、もう一度約束しましょう。'}</p>
+            <p class="notice">量や言い回しを小さくして、もう一度約束しましょう。</p>
             ${textFieldHtml(rp, 'repromise')}
             ${whenFieldsHtml(rp, 'repromise')}
             ${errorHtml(state.repromiseError)}
@@ -1582,7 +1764,7 @@ function renderHold() {
             </div>
           </div>` : `
           <div class="row">
-            <button class="btn" data-action="open-repromise" data-id="${esc(p.id)}">${canShrink ? '小さくして再約束' : '日付を決め直して再約束'}</button>
+            <button class="btn" data-action="open-repromise" data-id="${esc(p.id)}">小さくして再約束</button>
             <button class="btn btn-quiet" data-action="release" data-id="${esc(p.id)}">手放す</button>
           </div>`}
         </section>`;
@@ -1593,14 +1775,15 @@ function renderHold() {
 const VIEWS = {
   welcome: renderWelcome, about: renderAbout, intro: renderIntro, addUniv: renderAddUniv, univ: renderUniv,
   basic: renderBasic, time: renderTime,
-  misses: renderMisses, study: renderStudy, memo: renderMemo, result: renderResult,
+  misses: renderMisses, result: renderResult, manual: renderManual,
   hold: renderHold, promises: renderPromises
 };
 
-/* --- 下のタブバー(戻る / ホーム / 約束)。入力中の画面と最初の案内では隠す --- */
+/* --- 下のタブバー(わたしのトリセツ / ホーム / 約束)。入力中の画面と最初の案内では隠す --- */
 const ICON_BACK = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg>';
 const ICON_HOME = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 11l9-8 9 8"/><path d="M5 10v10h14V10"/><path d="M10 20v-6h4v6"/></svg>';
 const ICON_NOTE = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="3" width="14" height="18" rx="2"/><path d="M9 8h6"/><path d="M9 12h6"/><path d="M9 16h4"/></svg>';
+const ICON_BOOK = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M4 4.5A2.5 2.5 0 0 1 6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5z"/><path d="M8 7h8"/><path d="M8 11h6"/></svg>';
 const ICON_MENU = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M4 7h16"/><path d="M4 12h16"/><path d="M4 17h16"/></svg>';
 const NAV_HIDDEN_STEPS = ['welcome'].concat(STEPS);
 const HEADER_HIDDEN_STEPS = ['welcome'].concat(STEPS);
@@ -1608,6 +1791,7 @@ const HEADER_HIDDEN_STEPS = ['welcome'].concat(STEPS);
 function parentStep() {
   if (state.step === 'result') return 'univ';
   if (state.step === 'hold') return state.holdFrom || 'intro';
+  if (state.step === 'manual') return 'intro';
   return 'intro';
 }
 /* 約束ページを開く。goto と違い、スタンプ演出用の stampedId を残せる */
@@ -1636,12 +1820,13 @@ function renderTabbar() {
   const partN = proms.filter((p) => p.status === 'partial').length;
   const cur = state.step;
   const onProm = cur === 'promises' || cur === 'hold';
+  const onMan = cur === 'manual';
   const bits = [];
   if (todoN) bits.push('未完了' + todoN + '件');
   if (partN) bits.push('もう少し' + partN + '件');
   const badges = (todoN || partN) ? `<span class="tab-badges" aria-hidden="true">${todoN ? `<b class="tab-badge">${todoN > 9 ? '9+' : todoN}</b>` : ''}${partN ? `<b class="tab-badge blue">${partN > 9 ? '9+' : partN}</b>` : ''}</span>` : '';
   bar.innerHTML = `<div class="tabbar-in">
-    <button class="tab" data-action="nav-back" ${cur === 'intro' ? 'disabled' : ''}>${ICON_BACK}<span>戻る</span></button>
+    <button class="tab${onMan ? ' on' : ''}" data-action="open-manual" ${onMan ? 'aria-current="page"' : ''}>${ICON_BOOK}<span>わたしのトリセツ</span></button>
     <button class="tab${cur === 'intro' ? ' on' : ''}" data-action="home" ${cur === 'intro' ? 'aria-current="page"' : ''}>${ICON_HOME}<span>ホーム</span></button>
     <button class="tab${onProm ? ' on' : ''}" data-action="open-promises" ${onProm ? 'aria-current="page"' : ''} aria-label="約束${bits.length ? '(' + bits.join('、') + ')' : ''}">${ICON_NOTE}<span>約束</span>${badges}</button>
   </div>`;
@@ -1653,8 +1838,10 @@ function renderHeader() {
   el.hidden = hidden;
   if (hidden) { el.innerHTML = ''; state.menuOpen = false; return; }
   const onHome = state.step === 'intro';
-  const hasData = loadUnivs().length || loadRecs().length || loadProms().length;
+  const man = loadManual();
+  const hasData = loadUnivs().length || loadRecs().length || loadProms().length || man.goods.length || man.nexts.length;
   el.innerHTML = `<div class="app-header-in">
+    ${onHome ? '' : `<button class="icon-btn header-back" data-action="nav-back" aria-label="戻る">${ICON_BACK}</button>`}
     <button class="app-title-btn" data-action="home" ${onHome ? 'disabled' : ''} aria-label="赤本セルフチェック">
       <img src="akahon-title-header.png" alt="赤本セルフチェック" class="app-title-img" width="396" height="132">
     </button>
@@ -1684,6 +1871,7 @@ function render(opts) {
 }
 /* 画面を切り替える。ブラウザの「戻る」でも前の画面にもどれるように、履歴に積む */
 function goto(step) {
+  if (state.step === 'result' && step !== 'result') flushManual();
   state.step = step;
   state.error = '';
   state.stampedId = ''; state.promMsg = ''; state.fuOpenId = '';
@@ -1736,7 +1924,6 @@ function validate(step) {
       if (!m.loss) return `設問${i + 1}: どのくらい落としたか選んでください。`;
     }
   }
-  if (step === 'study' && !a.study) return '使える時間を選んでください。';
   return '';
 }
 
@@ -1783,12 +1970,37 @@ function ensureRecord() {
   return entry;
 }
 const currentRecord = () => (state.savedId ? loadRecs().find((r) => r.id === state.savedId) || null : null);
+function refreshPromiseText() {
+  const tag = pickedTag();
+  const text = promiseText(tag, state.a);
+  if (!state.promise.edited) {
+    state.promise.text = text;
+    state.promise.base = text;
+  } else {
+    state.promise.base = text;
+  }
+}
+function choiceError() {
+  const tag = pickedTag();
+  const a = state.a;
+  if (tag === 'understanding') {
+    if (!a.confirm) return '確認する資料を選んでください。';
+    if (!a.practice) return '確かめ方を選んでください。';
+  }
+  if (tag === 'knowledge' && !a.knowGoal) return 'ミニテ集の目標点を選んでください。';
+  if (tag === 'reasoning' && !a.seen) return '授業で扱ったことがあるか、選んでください。';
+  if (tag === 'writing' && hasWritingMissing(a) && !a.seen) return '似た問題に出会ったことがあるか、選んでください。';
+  if (needsNextHand(tag) && !a.next.trim()) return '次への一手を1文で入れてください。';
+  if (tag === 'stable' && !a.good.trim()) return 'うまくいった行動を1文で入れてください。';
+  return '';
+}
 function startFlow() {
   state.a = newAnswers();
   state.a.misses.push(newMiss());
   state.started = true;
   state.saved = false; state.savedId = ''; state.savedPromise = null;
-  state.showAi = false; state.includeMemo = false; state.followupMsg = '';
+  state.pickedTag = ''; state.manualFlushed = { good: '', next: '' };
+  state.showAi = false; state.followupMsg = '';
   goto(STEPS[0]);
 }
 function showResult() {
@@ -1804,13 +2016,15 @@ function showResult() {
   a.round = String(Math.min(3, all.length + 1));
   const d = decide(a);
   state.result = { d, prev, prevSame: mine.length > 0, prevProm };
+  state.pickedTag = d.primary;
+  a.seen = ''; a.knowGoal = ''; a.confirm = ''; a.practice = ''; a.good = ''; a.next = '';
   /* 出し直しのとき、前の結果につくった約束は消す(結果が変わるため) */
   if (state.savedPromise) saveProms(loadProms().filter((p) => p.id !== state.savedPromise.id));
   state.savedPromise = null; state.promiseError = '';
+  state.manualFlushed = { good: '', next: '' };
   state.saveFailed = !ensureRecord();
-  const scope = defaultScope(a, prevProm);
-  const text = promiseText(d.primary, scope, a);
-  state.promise = newWhenState({ scope, text, base: text });
+  const text = promiseText(d.primary, a);
+  state.promise = newWhenState({ scope: 'all', text, base: text });
   goto('result');
 }
 /* 「いつ」「やること」の入力先(state.promise か state.repromise) */
@@ -2048,14 +2262,17 @@ const onClick = async (e) => {
     render();
   } else if (act === 'promise') {
     const st = state.promise;
+    const choiceErr = choiceError();
+    if (choiceErr) { state.promiseError = choiceErr; render(); return; }
     const err = whenError(st);
     const text = st.text.trim();
     if (err) { state.promiseError = err; render(); return; }
     if (!text) { state.promiseError = 'やることを入れてください。'; render(); return; }
     const rec = currentRecord();
     if (!rec) { state.promiseError = '保存できませんでした(ブラウザの設定で保存が禁止されているかもしれません)。'; render(); return; }
-    const tag = state.result.d.primary;
-    const p = makePromise(rec.id, tag, st.scope, text, firstText(tag), composeWhen(st) || '');
+    const tag = pickedTag();
+    flushManual();
+    const p = makePromise(rec.id, tag, 'all', text, '', composeWhen(st) || '');
     const proms = loadProms();
     proms.push(p);
     if (!saveProms(proms)) { state.promiseError = '保存できませんでした(ブラウザの設定で保存が禁止されているかもしれません)。'; render(); return; }
@@ -2076,7 +2293,7 @@ const onClick = async (e) => {
   } else if (act === 'clear') {
     if (window.confirm('この端末に保存した、大学・記録・約束を、全部消します。よろしいですか?')) {
       /* 共有端末で次の人が使えるように、最初の案内画面も出し直す */
-      [KEY_UNIVS, KEY_RECORDS, KEY_PROMISES, KEY_SCHEDNAMES, KEY_WELCOME, KEY_OLD, KEY_CARDS].forEach(clearKey);
+      [KEY_UNIVS, KEY_RECORDS, KEY_PROMISES, KEY_SCHEDNAMES, KEY_MANUAL, KEY_WELCOME, KEY_OLD, KEY_CARDS].forEach(clearKey);
       state.univId = ''; state.result = null; state.started = false;
       state.saved = false; state.savedId = ''; state.savedPromise = null; state.followupMsg = '';
       goto('welcome');
@@ -2098,7 +2315,7 @@ const onClick = async (e) => {
     });
     const msg = (f.status === 'done'
       ? 'やりきりました。それがいちばん大事です。次の赤本で、効果を確かめましょう。'
-      : (f.status === 'partial' ? 'できた分だけで十分です。次は「最初の一歩」だけの約束にして、確実に続けましょう。' : '保留の約束として残しました。いつでも、小さくして出し直せます。') + ' ' + (FU_REASON_MSG[f.reason] || '')).trim();
+      : (f.status === 'partial' ? 'できた分だけで十分です。次は量を減らして、やりきれる形にしましょう。' : '保留の約束として残しました。いつでも、小さくして出し直せます。') + ' ' + (FU_REASON_MSG[f.reason] || '')).trim();
     state.followup = { status: '', reason: '' };
     state.followupError = '';
     state.followupMsg = '';
@@ -2128,7 +2345,12 @@ const onClick = async (e) => {
     goto(guardStep(parentStep()));
   } else if (act === 'open-promises') {
     if (state.step === 'promises') return;
+    if (state.step === 'result') flushManual();
     showPromises({ filter: state.promFilter || 'todo' });
+  } else if (act === 'open-manual') {
+    if (state.step === 'manual') return;
+    if (state.step === 'result') flushManual();
+    goto('manual');
   } else if (act === 'prom-filter') {
     state.promFilter = btn.dataset.id; state.fuOpenId = ''; state.promMsg = ''; state.stampedId = '';
     render();
@@ -2143,7 +2365,7 @@ const onClick = async (e) => {
   } else if (act === 'open-repromise') {
     const p = loadProms().find((x) => x.id === btn.dataset.id);
     if (!p) return;
-    const text = (p.first || ACTIONS[p.tag].first).replace('{field}', 'まだ習っていない分野');
+    const text = p.text || '';
     state.repromise = newWhenState({ id: p.id, text, base: text });
     state.repromiseError = '';
     render();
@@ -2158,7 +2380,7 @@ const onClick = async (e) => {
     if (err) { state.repromiseError = err; render(); return; }
     if (!text) { state.repromiseError = 'やることを入れてください。'; render(); return; }
     if (!old) return;
-    const np = makePromise(old.recordId, old.tag, 'first', text, old.first, composeWhen(st) || '', old.id);
+    const np = makePromise(old.recordId, old.tag, 'all', text, '', composeWhen(st) || '', old.id);
     const proms = loadProms().map((x) => (x.id === old.id ? Object.assign({}, x, { status: 'replaced' }) : x));
     proms.push(np);
     saveProms(proms);
@@ -2175,6 +2397,9 @@ const onClick = async (e) => {
     }
   } else if (act === 'open-about') {
     goto('about');
+  } else if (act === 'remove-manual') {
+    removeManualLine(btn.dataset.kind, btn.dataset.id);
+    render();
   }
 };
 app.addEventListener('click', onClick);
@@ -2238,24 +2463,25 @@ app.addEventListener('change', (e) => {
     if (key === 'form') { m.reason = ''; render({ focusSelector: radioSel(t) }); }
   } else if (t.matches('[data-pr]') && t.type === 'radio') {
     const st = whenTarget(t.dataset.prt);
-    const key = t.dataset.pr;
-    st[key] = t.value;
-    if (key === 'scope' && !st.edited) {
-      st.base = promiseText(state.result.d.primary, t.value, state.a);
-      st.text = st.base;
-    } else if (key === 'scope') {
-      st.base = promiseText(state.result.d.primary, t.value, state.a);
-    }
+    st[t.dataset.pr] = t.value;
     if (t.dataset.prt === 'repromise') state.repromiseError = ''; else state.promiseError = '';
+    render({ focusSelector: radioSel(t) });
+  } else if (t.matches('[data-pick]')) {
+    state.pickedTag = t.value;
+    state.a.seen = ''; state.a.knowGoal = ''; state.a.confirm = ''; state.a.practice = '';
+    state.promiseError = '';
+    refreshPromiseText();
+    if (state.savedId) updateRec(state.savedId, { primary: t.value });
+    render({ focusSelector: radioSel(t) });
+  } else if (t.matches('[data-ch]')) {
+    state.a[t.dataset.ch] = t.value;
+    state.promiseError = '';
+    refreshPromiseText();
     render({ focusSelector: radioSel(t) });
   } else if (t.matches('[data-fu]')) {
     state.followup[t.dataset.fu] = t.value;
     state.followupError = '';
     if (t.dataset.fu === 'status') { state.followup.reason = ''; render({ focusSelector: radioSel(t) }); }
-  } else if (t.id === 'include-memo') {
-    state.includeMemo = t.checked;
-    const ta = document.getElementById('prompt-text');
-    if (ta) ta.value = buildPrompt(state.a, state.result.d, state.includeMemo, state.result.prevProm);
   }
 });
 
