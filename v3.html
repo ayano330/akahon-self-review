@@ -149,6 +149,11 @@ input.invalid { border-color: var(--danger); background: #fdecea; }
 .univ-actions { display: flex; align-items: center; gap: 2px; padding-right: 2px; }
 .univ-card.editing { display: block; padding: 12px; }
 .fields-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.score-phrase { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 6px 8px; }
+.score-phrase .score-n-field { gap: 4px; }
+.score-n-wrap { display: flex; align-items: center; gap: 2px; font-weight: 700; }
+.score-n-wrap input { width: 4.5em; max-width: none; text-align: center; padding-left: 6px; padding-right: 6px; }
+.score-phrase-word { padding-bottom: 12px; font-weight: 700; }
 .suggest { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
 .suggest .chip-btn { font: inherit; min-height: 40px; padding: 4px 14px; border: 2px solid var(--primary); border-radius: 999px; background: var(--primary-soft); color: var(--primary); font-weight: 700; cursor: pointer; }
 table.data td.num, table.data th.num { text-align: right; white-space: nowrap; }
@@ -215,10 +220,10 @@ table.data td.act { width: 44px; text-align: right; padding: 2px 4px; }
 .seg { display: flex; gap: 6px; }
 .seg-btn { font: inherit; flex: 1; min-height: 44px; padding: 6px 4px; border: 2px solid var(--border); border-radius: var(--radius); background: var(--card); color: var(--fg); font-weight: 700; cursor: pointer; }
 .seg-btn .seg-n { font-weight: 400; margin-left: 4px; }
-.seg-btn.seg-todo { border-color: #e0b4b1; color: #b3261e; }
-.seg-btn.seg-todo[aria-pressed="true"] { background: #fdecea; border-color: #b3261e; color: #b3261e; }
-.seg-btn.seg-partial { border-color: #90caf9; color: #1565c0; }
-.seg-btn.seg-partial[aria-pressed="true"] { background: #e3f2fd; border-color: #1565c0; color: #1565c0; }
+.seg-btn.seg-todo, .seg-btn.seg-nexts { border-color: #e0b4b1; color: #b3261e; }
+.seg-btn.seg-todo[aria-pressed="true"], .seg-btn.seg-nexts[aria-pressed="true"] { background: #fdecea; border-color: #b3261e; color: #b3261e; }
+.seg-btn.seg-partial, .seg-btn.seg-goods { border-color: #90caf9; color: #1565c0; }
+.seg-btn.seg-partial[aria-pressed="true"], .seg-btn.seg-goods[aria-pressed="true"] { background: #e3f2fd; border-color: #1565c0; color: #1565c0; }
 .seg-btn.seg-done { border-color: #f6d365; color: #8a6d00; }
 .seg-btn.seg-done[aria-pressed="true"] { background: #fff8e1; border-color: #f9a825; color: #8a6d00; }
 
@@ -315,7 +320,7 @@ const FORMS = [
     { id: 'length', label: '字数制限に収めようとして時間を浪費した', tag: 'writing' },
     { id: 'notime', label: '時間がなくて書けなかった', tag: 'timeshort' }
   ] },
-  { id: 'calc', label: '計算・遺伝', reasons: [
+  { id: 'calc', label: '計算', reasons: [
     { id: 'how', label: '解き方がわからなかった', tag: 'understanding' },
     { id: 'slip', label: '立式はできたが、計算や処理でミスした', tag: 'calc' }
   ] },
@@ -577,7 +582,7 @@ function nextHandPrompt(tag) {
   if (tag === 'calc') return '次に同じミスをしないための対策は？';
   if (tag === 'careless') return '次に同じミスをしないための具体的な行動は？';
   if (tag === 'timeshort') return '次の赤本で変える行動は？';
-  return '次への一手(任意)';
+  return '次への一手';
 }
 function nextHandHint(tag) {
   if (tag === 'reasoning') return '例: 実験群と対照群で異なる条件に印をつける';
@@ -881,6 +886,7 @@ const state = {
   saveFailed: false,
   stampedId: '',
   promFilter: 'todo',
+  manFilter: 'nexts',
   promMsg: '',
   fuOpenId: '',
   holdFrom: '',
@@ -928,7 +934,7 @@ function progress(stepId) {
   const i = STEPS.indexOf(stepId);
   return `
     <div class="stack-sm">
-      <div class="row-between"><span class="muted">${i + 1} / ${STEPS.length}</span><span class="muted">約5分</span></div>
+      <div class="row-between"><span class="muted">${i + 1} / ${STEPS.length}</span></div>
       <div class="progress" role="progressbar" aria-valuemin="1" aria-valuemax="${STEPS.length}" aria-valuenow="${i + 1}"><span style="width:${((i + 1) / STEPS.length) * 100}%"></span></div>
     </div>`;
 }
@@ -1188,7 +1194,6 @@ function renderPromises() {
       ${f === 'todo' && heldCount ? `
       <section class="card stack-sm">
         <p><strong>保留中の約束 ${heldCount}件</strong></p>
-        <p class="muted">できなかった約束は、ここに残してあります。溜まっても大丈夫です。小さくして出し直したり、手放したりできます。</p>
         <div><button class="btn btn-sm" data-action="open-hold">保留中の約束を整える</button></div>
       </section>` : ''}
       ${groups[f].length === 0 ? `<p class="notice">${esc(PROM_EMPTY[f])}</p>` : ''}
@@ -1293,11 +1298,6 @@ function renderAddUniv() {
         <input type="text" maxlength="30" autocomplete="off" data-uf="name" class="${er.name ? 'invalid' : ''}" ${er.name ? 'aria-invalid="true"' : ''} value="${esc(f.name)}"></label>
       <label class="field"><span>目標の正答率(%)</span>
         <input type="number" inputmode="numeric" min="1" max="100" step="1" placeholder="例: 70" data-uf="target" class="${er.target ? 'invalid' : ''}" ${er.target ? 'aria-invalid="true"' : ''} value="${esc(f.target)}"></label>
-      <p class="muted" style="margin-top:-8px">合格最低点などのデータが公表されていない場合は、自分の目標を入力しましょう。</p>
-      <ul class="plain muted">
-        <li>大学名は、この端末だけに保存されます</li>
-        <li>目標正答率は、あとから変更できます</li>
-      </ul>
       ${errorHtml(state.univError)}
       <div class="row-between">
         <button class="btn btn-quiet" data-action="home">もどる</button>
@@ -1317,8 +1317,6 @@ function trendSection(univ, recs, draft, title, deletable) {
       <h2 id="tr">${esc(title)}</h2>
       <div class="chart">${chartHtml(model, univ.target)}</div>
       ${legendHtml(model.series)}
-      ${draft ? '<p class="muted">白抜きの印は、まだ保存していない今回の結果です。</p>' : ''}
-      ${univ.target != null ? '' : '<p class="muted">目標の正答率を入れると、グラフに点線で出ます。</p>'}
       ${deletable && recs.length ? '<p class="muted">行をタップすると、その回の結果を編集・削除できます。</p>' : ''}
       ${recordTableHtml(univ, recs, draft, !!deletable)}
     </section>`;
@@ -1361,19 +1359,16 @@ function manualPreviewHtml() {
   return `
     <section class="notice stack-sm" aria-labelledby="man-prev">
       <h2 id="man-prev" style="margin:0;font-size:1rem">わたしのトリセツ(直近)</h2>
-      <p class="muted">次の赤本の前に、一度目を通しましょう。試験中は見ません。</p>
       ${nexts.length ? `<p><strong>次への一手</strong></p><ul class="plain">${nexts.map(line).join('')}</ul>` : ''}
       ${goods.length ? `<p><strong>よかったところ</strong></p><ul class="plain">${goods.map(line).join('')}</ul>` : ''}
     </section>`;
 }
 function renderBasic() {
   const a = state.a;
-  const univ = getUniv(state.univId);
   return `
     <div class="stack">
       ${progress('basic')}
       <h1 tabindex="-1">今回の赤本について</h1>
-      <p class="muted">${esc(univ.name)} の赤本を登録します。</p>
       ${manualPreviewHtml()}
       <label class="field"><span>解いた年度</span>
         <input type="text" inputmode="numeric" pattern="[0-9]*" maxlength="4" autocomplete="off" placeholder="例: 2025" data-text="year" value="${esc(a.year)}"></label>
@@ -1382,13 +1377,14 @@ function renderBasic() {
           <input type="text" maxlength="12" autocomplete="off" placeholder="例: T日程、A日程、前期" data-text="sched" value="${esc(a.sched)}"></label>
         <div id="sched-suggest" class="suggest" hidden></div>
       </div>
-      <div class="fields-2">
-        <label class="field"><span>全問題数</span>
-          <input type="text" inputmode="numeric" pattern="[0-9]*" maxlength="3" autocomplete="off" placeholder="例: 40" data-text="full" value="${esc(a.full)}"></label>
-        <label class="field"><span>正答数</span>
-          <input type="text" inputmode="numeric" pattern="[0-9]*" maxlength="3" autocomplete="off" placeholder="例: 25" data-text="score" value="${esc(a.score)}"></label>
+      <div class="score-phrase">
+        <label class="field score-n-field"><span>全問題数</span>
+          <span class="score-n-wrap">（<input type="text" inputmode="numeric" pattern="[0-9]*" maxlength="3" autocomplete="off" aria-label="全問題数" data-text="full" value="${esc(a.full)}">）</span></label>
+        <span class="score-phrase-word">問中</span>
+        <label class="field score-n-field"><span>正答数</span>
+          <span class="score-n-wrap">（<input type="text" inputmode="numeric" pattern="[0-9]*" maxlength="3" autocomplete="off" aria-label="正答数" data-text="score" value="${esc(a.score)}">）</span></label>
+        <span class="score-phrase-word">問正解</span>
       </div>
-      <p class="muted">記録すると、正答率(%)に自動で換算されます。</p>
       ${errorHtml(state.error)}
       ${nav('basic')}
     </div>`;
@@ -1413,12 +1409,8 @@ function renderMiss(m, i) {
     <div class="card stack">
       <div class="row-between">
         <h2>点を落とした設問 ${i + 1}</h2>
-        <button class="btn btn-quiet" data-action="remove-miss" data-index="${i}">この設問を消す</button>
+        <button class="icon-btn danger" data-action="remove-miss" data-index="${i}" aria-label="この設問を消す">${ICON_TRASH}</button>
       </div>
-      <label class="field">
-        <span>どの設問か、メモ(任意)</span>
-        <input type="text" maxlength="30" placeholder="例: 大問2 問3" data-miss="${i}" data-key="label" data-text-miss="1" value="${esc(m.label)}">
-      </label>
       <fieldset>
         <legend>どんな問題でしたか?</legend>
         <div class="options">${FORMS.map((f) => `<label class="option"><input type="radio" name="miss${i}-form" value="${f.id}" data-miss="${i}" data-key="form" ${m.form === f.id ? 'checked' : ''}><span>${esc(f.label)}</span></label>`).join('')}</div>
@@ -1440,7 +1432,7 @@ function renderMisses() {
     <div class="stack">
       ${progress('misses')}
       <h1 tabindex="-1">点を落とした設問</h1>
-      <p>大きく落とした順に、最大3つまで選んでください。全部書かなくて大丈夫です。</p>
+      <p>最大3つまで振り返りましょう</p>
       ${a.misses.length === 0 ? '<p class="notice">失点した設問がない場合は、このまま次へ進めます。</p>' : ''}
       ${a.misses.map(renderMiss).join('')}
       <div><button class="btn" data-action="add-miss" ${a.misses.length >= 3 ? 'disabled' : ''}>設問を追加する(${a.misses.length}/3)</button></div>
@@ -1448,26 +1440,33 @@ function renderMisses() {
       ${nav('misses', '結果を見る')}
     </div>`;
 }
+const MAN_GROUPS = [
+  { id: 'nexts', label: '次への一手' },
+  { id: 'goods', label: 'よかったところ' }
+];
+const MAN_EMPTY = {
+  nexts: 'まだありません。結果の「次への一手」に書くと、ここに溜まります。',
+  goods: 'まだありません。結果の「よかったところ」に書くと、ここに溜まります。'
+};
 function renderManual() {
   const m = loadManual();
-  const block = (title, kind, list, empty) => `
-    <section class="stack-sm" aria-labelledby="man-${kind}">
-      <h2 id="man-${kind}">${title}</h2>
-      ${list.length ? list.map((x) => `
+  const groups = { nexts: m.nexts, goods: m.goods };
+  const f = groups[state.manFilter] ? state.manFilter : 'nexts';
+  const list = groups[f];
+  return `
+    <div class="stack">
+      <h1 tabindex="-1">わたしのトリセツ</h1>
+      <div class="seg" role="group" aria-label="トリセツの絞り込み">
+        ${MAN_GROUPS.map((g) => `<button class="seg-btn seg-${g.id}" data-action="man-filter" data-id="${g.id}" aria-pressed="${f === g.id}">${g.label}<span class="seg-n">${groups[g.id].length}</span></button>`).join('')}
+      </div>
+      ${list.length === 0 ? `<p class="notice">${esc(MAN_EMPTY[f])}</p>` : list.map((x) => `
         <div class="manual-item">
           <div style="flex:1;min-width:0">
             <p>${esc(x.text)}</p>
             <p class="manual-date">${esc(new Date(x.ts).toLocaleDateString('ja-JP'))}</p>
           </div>
-          <button class="icon-btn danger" data-action="remove-manual" data-kind="${kind}" data-id="${esc(x.id)}" aria-label="この行を消す">${ICON_TRASH}</button>
-        </div>`).join('') : `<p class="muted">${empty}</p>`}
-    </section>`;
-  return `
-    <div class="stack">
-      <h1 tabindex="-1">わたしのトリセツ</h1>
-      <p>次の赤本までに見返す、自分用のメモです。試験の最中には使いません。赤本を記録すると、ここに残ります。</p>
-      ${block('次への一手', 'nexts', m.nexts, 'まだありません。結果の「次への一手」に書くと、ここに溜まります。')}
-      ${block('よかったところ', 'goods', m.goods, 'まだありません。結果の「よかったところ」に書くと、ここに溜まります。')}
+          <button class="icon-btn danger" data-action="remove-manual" data-kind="${f}" data-id="${esc(x.id)}" aria-label="この行を消す">${ICON_TRASH}</button>
+        </div>`).join('')}
     </div>`;
 }
 
@@ -1493,8 +1492,7 @@ function tagChoiceHtml(d) {
     <fieldset>
       <legend>次の赤本までに取り組む課題を、1つ選んでください</legend>
       ${radios('pick-tag', d.ranked.map((id) => ({ id, label: tagLabel(id) })), tag, 'data-pick="1"', 'col')}
-    </fieldset>
-    <p class="muted">数字が大きいほど、点を落とした影響が大きかった課題です。1本だけ選んで進みます。</p>`;
+    </fieldset>`;
 }
 function extraChoiceHtml(tag, a) {
   if (tag === 'understanding') {
@@ -1504,7 +1502,7 @@ function extraChoiceHtml(tag, a) {
         ${radios('confirm', CONFIRM_OPTS, a.confirm, 'data-ch="confirm"', 'col')}
       </fieldset>
       <fieldset>
-        <legend>どうやって確かめますか?(優先順位はありません。自分がやるほうを選んでください)</legend>
+        <legend>どうやって確かめますか?</legend>
         ${radios('practice', practiceOptions(a), a.practice, 'data-ch="practice"', 'col')}
       </fieldset>`;
   }
@@ -1513,8 +1511,7 @@ function extraChoiceHtml(tag, a) {
       <fieldset>
         <legend>ミニテ集の目標点は?</legend>
         ${radios('knowGoal', KNOW_GOALS, a.knowGoal, 'data-ch="knowGoal"')}
-      </fieldset>
-      <p class="muted">知識を確認して終わりにせず、少し時間を空けてから解いて確かめてください。間隔の長さは自分で決めてよいです。</p>`;
+      </fieldset>`;
   }
   if (tag === 'reasoning') {
     return `
@@ -1528,8 +1525,7 @@ function extraChoiceHtml(tag, a) {
       <fieldset>
         <legend>今までの教材で同じ・似た問題に出会ったことがありますか?</legend>
         ${radios('seen', SEEN_OPTS, a.seen, 'data-ch="seen"', 'col')}
-      </fieldset>
-      <p class="muted">論述問題集に限りません。ミニテ集、単元別問題集、演習教材など、今まで使った教材すべてが対象です。</p>`;
+      </fieldset>`;
   }
   return '';
 }
@@ -1539,7 +1535,6 @@ function manualFieldsHtml(tag, a) {
   return `
     <section class="card stack" aria-labelledby="man-in">
       <h2 id="man-in">わたしのトリセツに残す</h2>
-      <p class="muted">試験の最中には見ません。次の赤本の前に、自分で見返すためのメモです。</p>
       <label class="field">
         <span>${esc(nextHandPrompt(tag))}${nextReq ? '' : ' (任意)'}</span>
         <textarea class="short" maxlength="120" data-text="next" placeholder="${esc(nextHandHint(tag))}">${esc(a.next)}</textarea>
@@ -1561,7 +1556,6 @@ function whenFieldsHtml(st, target) {
       ${radios('pwhen-' + target, opts, st.whenOpt, `data-pr="whenOpt" data-prt="${target}"`, 'col')}
       ${st.whenOpt === 'custom' ? `<label class="field" style="margin-top:8px"><span>日付</span><input type="date" min="${todayStr()}" data-pr="date" data-prt="${target}" value="${esc(st.date)}"></label>` : ''}
       ${hasDate ? `<label class="field" style="margin-top:8px"><span>時刻(決めなくてもOK)</span><input type="time" data-pr="time" data-prt="${target}" value="${esc(st.time)}"></label>` : ''}
-      <p class="muted" style="margin-top:8px">日付だけ決めて、時刻は空のままでも大丈夫です。決められないときは「あとで決める」を選べます(トップ画面で、あとから日付を決められます)。</p>
     </fieldset>`;
 }
 function textFieldHtml(st, target) {
@@ -1584,72 +1578,16 @@ function promiseHtml(d, a) {
         ${p.when ? '' : '<p class="muted">日付はまだ決めていません。決めたくなったら、トップ画面から日付を決められます。</p>'}
         ${icsBtn ? `<div class="row">${icsBtn}</div>` : ''}
         <p id="promise-status" class="muted" role="status"></p>
-        <p class="muted">この画面をスクリーンショットして、スマホの待ち受けや写真に残すのもおすすめです。次にこのツールを開いたとき、約束を守れたか聞かれます。</p>
       </section>`;
   }
   const p = state.promise;
   return `
     <section class="card card-accent stack" aria-labelledby="pf">
       <h2 id="pf">約束する</h2>
-      <p>提案を「やるかも」で終わらせないために、いつ・どこまでやるか決めましょう。量は自分で決めてよく、複数日に分けても大丈夫です。</p>
       ${textFieldHtml(p, 'promise')}
       ${whenFieldsHtml(p, 'promise')}
       ${errorHtml(state.promiseError)}
       <div><button class="btn btn-primary" data-action="promise">約束する</button></div>
-    </section>`;
-}
-
-function draftInfo() {
-  const univ = getUniv(state.univId);
-  const a = state.a;
-  const name = a.sched.trim();
-  let schedKey = ''; let schedName = '';
-  if (name) {
-    const hit = matchSched(univ, name);
-    schedKey = hit ? hit.id : '__draft';
-    schedName = hit ? hit.name : name;
-  }
-  return { year: Number(a.year), schedKey, schedName, v: pct(a.score, a.full), score: Number(a.score), full: Number(a.full) };
-}
-
-function trendHtml() {
-  const univ = getUniv(state.univId);
-  if (!univ) return '';
-  const recs = loadRecs().filter((r) => r.univId === univ.id);
-  /* 通常は保存済みなので、記録がそのままグラフに出る。保存できなかったときだけ、白抜きの印で出す */
-  const draft = state.savedId ? null : draftInfo();
-  const cur = state.savedId ? recs.find((r) => r.id === state.savedId) : null;
-  const me = draft ? { year: draft.year, schedKey: draft.schedKey } : (cur ? { year: cur.year, schedKey: cur.schedId || '' } : null);
-  const dup = me && recs.some((r) => r.id !== state.savedId && r.year === me.year && (r.schedId || '') === me.schedKey);
-  return trendSection(univ, recs, draft, `${univ.name} の正答率の推移`, false)
-    + (dup ? '<p class="muted">同じ年度・日程の記録がすでにあります。グラフには、新しいほうの点だけを表示します。</p>' : '');
-}
-
-function compareHtml(res, d, a) {
-  const prev = res.prev;
-  if (!prev) return '';
-  const pr = pct(prev.score, prev.full);
-  const cr = pct(a.score, a.full);
-  const diff = cr - pr;
-  const diffText = diff > 0 ? `+${diff}` : String(diff);
-  const same = prev.primary === d.primary;
-  const prevLabel = tagLabel(prev.primary);
-  const pp = res.prevProm;
-  let fu = '';
-  if (pp) {
-    if (pp.status === 'open') fu = '<p>前回の約束: まだ「どうだったか」を記録していません。トップ画面で記録できます。</p>';
-    else if (pp.status === 'done') fu = `<p>前回の約束: やりきりました。${diff > 0 ? 'やったことが、正答率に出ています。' : '今回は得点が動きませんでしたが、赤本ごとの難しさの差もあります。続けて確かめましょう。'}</p>`;
-    else fu = `<p>前回の約束: ${esc(pp.status === 'partial' ? '一部だけやった' : 'できなかった')}。うまくいかなかった理由を、先生に話してみましょう。</p>`;
-  }
-  return `
-    <section class="card stack-sm" aria-labelledby="cmp">
-      <h2 id="cmp">前回との比べ方</h2>
-      <p class="muted">${res.prevSame ? '同じ大学の前回と比べています。' : '前回(別の大学)と比べています。'}</p>
-      <p>正答率: 前回 ${pr}%(${esc(prev.date)})→ 今回 ${cr}%(${diffText}ポイント)</p>
-      ${same
-        ? `<p>前回と同じ「${esc(prevLabel)}」が、今回も上位です。前回のアクションは続けられましたか?</p>`
-        : `<p>前回の課題だった「${esc(prevLabel)}」は、今回は一番ではありません。課題が入れ替わるのは、前に進んでいる証拠です。</p>`}
-      ${fu}
     </section>`;
 }
 
@@ -1658,31 +1596,18 @@ function renderResult() {
   const { d } = state.result;
   const tag = pickedTag();
   const cr = pct(a.score, a.full);
-  const maxScore = Math.max(1, ...d.ranked.map((t) => d.scores[t]));
-  const lead = a.round === '1'
-    ? '1回目は、点数が低くて当たり前です。今日わかったことが、いちばんの収穫です。'
-    : '赤本を重ねるほど、点数よりも「なぜ落としたか」を見る力が大事になります。';
   const prompt = buildPrompt(a, d, state.result.prevProm);
   return `
     <div class="stack">
       <h1 tabindex="-1">結果</h1>
-      <p class="notice">${esc(lead)}</p>
       ${state.saveFailed
         ? '<p class="notice notice-warn" role="alert">この端末には、記録を保存できませんでした(ブラウザの設定で保存が禁止されているかもしれません)。この結果は、画面を閉じると消えます。</p>'
-        : '<p class="muted">この赤本の記録は、この端末に自動で保存しました。消したいときや直したいときは、大学のページの一覧をタップしてください。</p>'}
+        : ''}
 
       <section class="card stack" aria-labelledby="found">
-        <h2 id="found">今回わかったこと</h2>
-        <p><span class="score-big">${cr}%</span> <span class="muted">(全${esc(a.full)}問中 ${esc(a.score)}問正解)</span></p>
-        ${d.ranked.length ? `
-        <div class="stack-sm" role="list" aria-label="失点の内訳">
-          ${d.ranked.map((t, i) => `
-            <div class="bar-row ${i === 0 ? 'top' : ''}" role="listitem">
-              <span>${esc(tagLabel(t))}</span>
-              <div class="bar"><span style="width:${Math.round((d.scores[t] / maxScore) * 100)}%"></span></div>
-              <span>${d.scores[t]}</span>
-            </div>`).join('')}
-        </div>` : '<p>目だった課題は見つかりませんでした。</p>'}
+        <h2 id="found">正答率</h2>
+        <p><span class="score-big">${cr}%</span></p>
+        <p>${esc(a.full)}問中 ${esc(a.score)}問正解</p>
         ${tagChoiceHtml(d)}
       </section>
 
@@ -1695,12 +1620,8 @@ function renderResult() {
       ${manualFieldsHtml(tag, a)}
       ${promiseHtml(d, a)}
 
-      ${trendHtml()}
-      ${compareHtml(state.result, d, a)}
-
       <section class="card stack-sm" aria-labelledby="ai">
         <h2 id="ai">AIに相談してみる(任意)</h2>
-        <p class="muted">ChatGPTやGeminiなどのAIを、すでに使っている人向けです。使わなくても、ここまでの結果で十分です。</p>
         <div><button class="btn" data-action="toggle-ai" aria-expanded="${state.showAi}">${state.showAi ? '閉じる' : 'AIに渡す文章を見る'}</button></div>
         ${state.showAi ? `
         <div class="notice notice-warn stack-sm">
@@ -1722,7 +1643,6 @@ function renderResult() {
         </div>` : ''}
       </section>
 
-      <p class="muted">この提案は目安です。迷ったときは、先生に相談してください。</p>
       <div class="row">
         <button class="btn btn-quiet" data-action="home">トップにもどる</button>
       </div>
@@ -1783,13 +1703,13 @@ const VIEWS = {
 const ICON_BACK = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg>';
 const ICON_HOME = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 11l9-8 9 8"/><path d="M5 10v10h14V10"/><path d="M10 20v-6h4v6"/></svg>';
 const ICON_NOTE = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="3" width="14" height="18" rx="2"/><path d="M9 8h6"/><path d="M9 12h6"/><path d="M9 16h4"/></svg>';
-const ICON_BOOK = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M4 4.5A2.5 2.5 0 0 1 6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5z"/><path d="M8 7h8"/><path d="M8 11h6"/></svg>';
+const ICON_BRAIN = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9.5 6.2a3 3 0 0 1 5 0 3 3 0 0 1 3.2 4.5 2.7 2.7 0 0 1-1.2 4.5v1.6a2 2 0 0 1-2 2h-5a2 2 0 0 1-2-2v-1.6a2.7 2.7 0 0 1-1.2-4.5A3 3 0 0 1 9.5 6.2z"/><path d="M12 8.8v8.7"/><path d="M9.2 12h2.4M12.4 15.2H15"/><path d="M19.2 3.1l.55 1.25 1.25.55-1.25.55-.55 1.25-.55-1.25-1.25-.55 1.25-.55z"/></svg>';
 const ICON_MENU = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M4 7h16"/><path d="M4 12h16"/><path d="M4 17h16"/></svg>';
 const NAV_HIDDEN_STEPS = ['welcome'].concat(STEPS);
 const HEADER_HIDDEN_STEPS = ['welcome'].concat(STEPS);
-/* 「戻る」の行き先。結果は大学のページへ、保留中の約束は来た場所へ、それ以外はホームへ */
+/* 「戻る」の行き先。結果は入力の直前(点を落とした設問)へ、保留中の約束は来た場所へ、それ以外はホームへ */
 function parentStep() {
-  if (state.step === 'result') return 'univ';
+  if (state.step === 'result') return 'misses';
   if (state.step === 'hold') return state.holdFrom || 'intro';
   if (state.step === 'manual') return 'intro';
   return 'intro';
@@ -1826,7 +1746,7 @@ function renderTabbar() {
   if (partN) bits.push('もう少し' + partN + '件');
   const badges = (todoN || partN) ? `<span class="tab-badges" aria-hidden="true">${todoN ? `<b class="tab-badge">${todoN > 9 ? '9+' : todoN}</b>` : ''}${partN ? `<b class="tab-badge blue">${partN > 9 ? '9+' : partN}</b>` : ''}</span>` : '';
   bar.innerHTML = `<div class="tabbar-in">
-    <button class="tab${onMan ? ' on' : ''}" data-action="open-manual" ${onMan ? 'aria-current="page"' : ''}>${ICON_BOOK}<span>わたしのトリセツ</span></button>
+    <button class="tab${onMan ? ' on' : ''}" data-action="open-manual" ${onMan ? 'aria-current="page"' : ''}>${ICON_BRAIN}<span>トリセツ</span></button>
     <button class="tab${cur === 'intro' ? ' on' : ''}" data-action="home" ${cur === 'intro' ? 'aria-current="page"' : ''}>${ICON_HOME}<span>ホーム</span></button>
     <button class="tab${onProm ? ' on' : ''}" data-action="open-promises" ${onProm ? 'aria-current="page"' : ''} aria-label="約束${bits.length ? '(' + bits.join('、') + ')' : ''}">${ICON_NOTE}<span>約束</span>${badges}</button>
   </div>`;
@@ -1871,7 +1791,8 @@ function render(opts) {
 }
 /* 画面を切り替える。ブラウザの「戻る」でも前の画面にもどれるように、履歴に積む */
 function goto(step) {
-  if (state.step === 'result' && step !== 'result') flushManual();
+  /* 入力の修正に戻るときは、トリセツへまだ書かない */
+  if (state.step === 'result' && step !== 'result' && STEPS.indexOf(step) < 0) flushManual();
   state.step = step;
   state.error = '';
   state.stampedId = ''; state.promMsg = ''; state.fuOpenId = '';
@@ -2353,6 +2274,9 @@ const onClick = async (e) => {
     goto('manual');
   } else if (act === 'prom-filter') {
     state.promFilter = btn.dataset.id; state.fuOpenId = ''; state.promMsg = ''; state.stampedId = '';
+    render();
+  } else if (act === 'man-filter') {
+    state.manFilter = btn.dataset.id;
     render();
   } else if (act === 'open-followup') {
     state.fuOpenId = btn.dataset.id; state.followup = { status: '', reason: '' };
