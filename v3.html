@@ -47,6 +47,8 @@ h1:focus { outline: none; }
 .stack { display: flex; flex-direction: column; gap: 16px; }
 .stack-sm { display: flex; flex-direction: column; gap: 8px; }
 .row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+.row-end { justify-content: flex-end; }
+.nowrap-row { flex-wrap: nowrap; }
 .row-between { display: flex; gap: 8px; justify-content: space-between; align-items: center; flex-wrap: wrap; }
 
 .card { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px; }
@@ -109,6 +111,18 @@ label.field { display: flex; flex-direction: column; gap: 4px; font-weight: 700;
 .bar > span { display: block; height: 100%; background: #8fb7a2; }
 .bar-row.top .bar > span { background: var(--primary); }
 .score-big { font-size: 2rem; font-weight: 700; line-height: 1.2; }
+.score-wrap { position: relative; display: inline-flex; align-items: center; gap: 8px; }
+.cele { font-size: 1.9rem; line-height: 1; display: inline-block; transform-origin: 20% 80%; }
+.cele.pop { animation: cele-pop 0.7s cubic-bezier(0.2, 1.5, 0.4, 1) both; }
+@keyframes cele-pop { 0% { transform: scale(0.2) rotate(-30deg); opacity: 0; } 100% { transform: scale(1) rotate(0); opacity: 1; } }
+.confetti { position: absolute; left: 100%; top: 50%; width: 0; height: 0; pointer-events: none; z-index: 2; }
+.confetti i { position: absolute; left: 0; top: 0; width: 8px; height: 12px; border-radius: 2px; opacity: 0; animation: confetti-burst 1.9s ease-out both; }
+@keyframes confetti-burst {
+  0% { transform: translate(0, 0) rotate(0) scale(0.4); opacity: 1; }
+  35% { transform: translate(calc(var(--dx) * 0.8), calc(var(--up) * -1)) rotate(calc(var(--rot) * 0.4)) scale(1); opacity: 1; }
+  100% { transform: translate(var(--dx), var(--fall)) rotate(var(--rot)) scale(1); opacity: 0; }
+}
+@media (prefers-reduced-motion: reduce) { .confetti { display: none; } .cele.pop { animation: none; } }
 .kv { display: grid; grid-template-columns: auto 1fr; gap: 4px 12px; font-size: 0.95rem; margin: 0; }
 .kv dt { color: var(--muted); }
 .kv dd { margin: 0; }
@@ -216,7 +230,9 @@ table.data td.act { width: 44px; text-align: right; padding: 2px 4px; }
 .tabbar-in { max-width: 640px; margin: 0 auto; display: flex; }
 .tab { font: inherit; position: relative; flex: 1; min-height: 60px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; border: 0; background: none; color: var(--muted); font-size: 0.72rem; font-weight: 700; cursor: pointer; padding: 6px 4px; }
 .tab span { text-align: center; line-height: 1.15; max-width: 8.5em; }
+.tab span.nowrap { white-space: nowrap; max-width: none; font-size: 0.68rem; letter-spacing: -0.01em; }
 .tab svg { width: 24px; height: 24px; }
+.tab img.ic-img { width: 40px; height: 24px; display: block; }
 .tab.on { color: var(--primary); background: var(--primary-soft); }
 .tab:disabled { opacity: 0.35; cursor: not-allowed; }
 .tab-badges { position: absolute; top: 2px; left: 50%; display: flex; gap: 3px; transform: translateX(8px); pointer-events: none; }
@@ -314,7 +330,8 @@ const FORMS = [
   { id: 'term', label: '用語・知識', reasons: [
     { id: 'forgot', label: '覚えていなかった・うろ覚えだった', tag: 'knowledge' },
     { id: 'confused', label: '似た用語と混同した', tag: 'knowledge' },
-    { id: 'no_mech', label: '用語は言えるが、仕組みがわかっていなかった', tag: 'understanding' }
+    { id: 'no_mech', label: '用語は言えるが、仕組みがわかっていなかった', tag: 'understanding' },
+    { id: 'minite_out', label: 'ミニテ集に載っていない用語だった', tag: 'knowledge' }
   ] },
   { id: 'reasoning', label: '考察(実験・グラフ)', reasons: [
     { id: 'cond', label: '実験結果・データは読めたが、そこから結論を正しく導けなかった', tag: 'reasoning' },
@@ -325,11 +342,14 @@ const FORMS = [
     { id: 'what', label: '何を書けばいいかわからなかった', tag: 'understanding' },
     { id: 'missing', label: '書いたが、要素(キーワード)が足りなかった', tag: 'writing' },
     { id: 'length', label: '字数制限に収めようとして時間を浪費した', tag: 'writing' },
+    { id: 'japanese', label: '書いた文の日本語がおかしかった(主語と述語、原因と結果がつながらない)', tag: 'writing' },
     { id: 'notime', label: '時間がなくて書けなかった', tag: 'timeshort' }
   ] },
   { id: 'calc', label: '計算', reasons: [
     { id: 'how', label: '解き方がわからなかった', tag: 'understanding' },
-    { id: 'slip', label: '立式はできたが、計算や処理でミスした', tag: 'calc' }
+    { id: 'first_seen', label: '初めて見る形で、手がつかなかった', tag: 'calc' },
+    { id: 'slip', label: '立式はできたが、計算や処理でミスした', tag: 'calc' },
+    { id: 'spec_miss', label: '問題の指定(有効数字・何を求めるか など)を読み落とした', tag: 'careless' }
   ] },
   { id: 'choice', label: '正誤問題', reasons: [
     { id: 'noevidence', label: 'そもそも選択肢を絞ることができなかった', tag: 'knowledge' },
@@ -346,7 +366,8 @@ const CONFIRM_OPTS = [
 const PRACTICE_BY_REASON = {
   no_mech: [
     { id: 'minite', label: 'ミニテ集' },
-    { id: 'tangen13', label: '単元別問題集★1〜3' }
+    { id: 'tangen13', label: '単元別問題集★1〜3' },
+    { id: 'oral', label: '口頭説明' }
   ],
   what: [
     { id: 'essay', label: '論述問題集' },
@@ -354,12 +375,63 @@ const PRACTICE_BY_REASON = {
   ],
   how: [
     { id: 'exprint', label: '授業で扱った演習教材' },
-    { id: 'tangen_done', label: '単元別問題集の既習問題' }
+    { id: 'tangen_done', label: '単元別問題集の既習問題' },
+    { id: 'oral', label: '口頭説明' }
   ]
 };
 const KNOW_GOALS = [
   { id: '80', label: '8割以上' },
-  { id: '90', label: '9割以上' }
+  { id: '90', label: '9割以上' },
+  { id: '100', label: '全問正解' }
+];
+/* 約束の文に入れる言い方 */
+const KNOW_GOAL_PHRASE = { '80': '8割以上取れる', '90': '9割以上取れる', '100': '全問正解できる' };
+/* 論述(要素不足)の種類と、必要な内容の確認のしかた */
+const WKIND_OPTS = [
+  { id: 'knowledge', label: '知識系(用語や仕組みを説明する問題)' },
+  { id: 'reasoning', label: '考察系(実験・データから考える問題)' }
+];
+const WKIND_STEP = {
+  knowledge: '論述問題集で、必要な定型文を確認し、正確に書けるようにする',
+  reasoning: '問題文から条件を読み取り、出題意図と5W1H(いつ・どこで・誰が・何を・なぜ・どのように)を確認する'
+};
+/* 「次への一手」のひな形(先生方のアンケート回答から。生徒は選ぶか、自分で書く) */
+const NEXT_HAND_CHIPS = {
+  reasoning: [
+    '先に設問を読み、注目するポイントを押さえてから、実験の説明を読む',
+    '実験の目的と、グラフ・表が何を示しているかを、最初に確認する',
+    '実験群と対照群で異なる条件に印をつける',
+    '根拠を示しながら、口に出して解説する'
+  ],
+  calc: [
+    '途中式を省かずに書く',
+    '分数は、小数を整数に直してから計算する',
+    '単位を書く',
+    '与えられた条件を図にする',
+    '文字式は、適当な数字を代入して試す',
+    '「いつものやり方なら、どう考えるか」を書き出す',
+    'ミスした式を紙に記録して、先生に見せる'
+  ],
+  careless: [
+    '問題の指定に線を引く',
+    '「正しいもの」「誤っているもの」「一つ」「すべて」に丸をつける',
+    '有効数字や「何を求めるか」の指定を、解く前に確認する',
+    '注意することを紙に書き、問題を解く前に見返す'
+  ],
+  timeshort: [
+    '時間がかかりそうな問題は飛ばして、一周したあとにもう一度考える',
+    '選択問題は直感でもいったん解答し、印をつけておく',
+    '「単語・選択問題 → 計算 → 考察」の順に解く',
+    'ミニテ集の単語の部分を、繰り返し解く',
+    'まずは時間を気にせず、丁寧に解く'
+  ]
+};
+const NH_OWN = 'own';
+/* 約束の見直し日(約束の日から数える)。先生方の回答で、2〜3日後に見直す・解き直すが複数出た */
+const REVIEW_OPTS = [
+  { id: 'none', label: '入れない' },
+  { id: '2', label: '2日後' },
+  { id: '3', label: '3日後' }
 ];
 const SEEN_OPTS = [
   { id: 'yes', label: 'ある' },
@@ -372,14 +444,14 @@ const ACTIONS = {
     title: 'わからなかった内容を確認し、自分で説明できるようにしよう',
     short: '確認したあと、問題を解くか口頭で説明して確かめる',
     why: '内容を確認したあと、自分で説明したり問題を解いたりして確かめるため。',
-    steps: ['授業ノート、または授業動画・e-stepで、間違えた内容に関係する部分を確認する', '提示された教材の問題を解くか、口に出して説明する', '問題演習なら正解して解き方も説明できるか、口頭説明なら何も見ずに最後まで説明できるか確かめる'],
+    steps: ['授業ノート、または授業動画・e-stepで、間違えた内容に関係する部分を確認する', '提示された教材の問題を解くか、口に出して説明する', '問題演習なら正解して解き方も説明できるか、口頭説明なら何も見ずに最後まで説明できるか確かめる。説明できなければ、どこがわからないかをはっきりさせて先生に質問する'],
     amount: '問題演習の量は自分で決める', goal: '選んだ問題を正解し、解き方も説明できた。または、資料を見ずに最後まで口頭説明できた'
   },
   knowledge: {
     title: '覚えていなかった知識を確認し、ミニテストで目標点を取ろう',
     short: '知識を確認したあと、時間を空けてミニテ集で確かめる',
     why: '見直した知識を、時間がたっても自分で答えられるか確かめるため。',
-    steps: ['授業ノート、または授業動画・e-stepで知識を確認する', '少し時間を空けて、ミニテ集の該当テストを解く', '自分が選んだ目標点に届いたか確かめる'],
+    steps: ['授業ノート、または授業動画・e-stepで知識を確認する', '少し時間を空けて、ミニテ集の該当テストを解く。目標に届くまで繰り返す', '自分が選んだ目標点に届いたか確かめる'],
     amount: 'ミニテ集1回 約15分', goal: '自分で宣言した目標点を達成できた'
   },
   reasoning: {
@@ -393,8 +465,15 @@ const ACTIONS = {
     title: '論述で足りなかった要素を確認し、次に書けるようにしよう',
     short: '既習なら解き直し、初見なら答案と模範解答を比べる',
     why: '以前解いた問題なら解き直し、初見なら模範解答との比較で不足した要素を確認するため。',
-    steps: ['今までの教材で同じ・似た問題に出会ったことがあるか確認する', 'あるなら該当する教材の問題を解き直す。ないなら自分の答案と模範解答を比べて足りなかった要素を確認する'],
+    steps: ['知識系か考察系かに合わせて、書くべき内容を確認する', 'あるなら該当する教材の問題を解き直す。ないなら自分の答案と模範解答を比べて足りなかった要素を確認する', '解答に必要なキーワードと専門用語に線を引き、「この論述で何を書く必要があるか」をノートに書き溜める'],
     amount: '', goal: '足りなかった要素を挙げられる'
+  },
+  writingJapanese: {
+    title: '書いた文章を読み直して、日本語のおかしいところを自分で見つけよう',
+    short: '声に出して読み直し、主語と述語・原因と結果を確認する',
+    why: '自分の文章の何がおかしいのかを自分で理解することが、同じミスを減らす第一歩になるため。',
+    steps: ['書き終わったら、頭の中で読み上げるか声に出して読み、違和感のある部分を探す', '主語と述語に線を引いて、対応しているか確認する。「〜ので」「〜から」は、原因と結果に線を引いて、つながりを確認する', '長い一文は、短く区切る'],
+    amount: '', goal: '自分の文章のおかしいところを見つけて、直せた'
   },
   writingLength: {
     title: '論述を書く前に、必要な要素と説明の流れをメモしよう',
@@ -477,8 +556,23 @@ const tagLabel = (id) => (TAGS.find((t) => t.id === id) || { label: id }).label;
 const pickedTag = () => (state.pickedTag || (state.result && state.result.d ? state.result.d.primary : 'stable'));
 const needsNextHand = (tag) => NEXT_HAND_TAGS.indexOf(tag) >= 0;
 const hasWritingMissing = (a) => (a.misses || []).some((m) => m.reason === 'missing');
+/* 論述の行き先。要素不足があればそれ。なければ、字数で浪費と日本語の乱れのうち、失点の大きいほう(同じなら字数) */
+function writingKind(a) {
+  if (hasWritingMissing(a)) return 'missing';
+  let len = 0; let jp = 0;
+  (a.misses || []).forEach((m) => {
+    if (m.form !== 'writing') return;
+    if (m.reason === 'length') len += LOSS_WEIGHT[m.loss] || 0;
+    if (m.reason === 'japanese') jp += LOSS_WEIGHT[m.loss] || 0;
+  });
+  return jp > len ? 'japanese' : 'length';
+}
 const actionOf = (tag, a) => {
-  if (tag === 'writing' && a && !hasWritingMissing(a)) return ACTIONS.writingLength;
+  if (tag === 'writing' && a) {
+    const k = writingKind(a);
+    if (k === 'length') return ACTIONS.writingLength;
+    if (k === 'japanese') return ACTIONS.writingJapanese;
+  }
   return ACTIONS[tag] || { title: '', short: '', why: '', steps: [], amount: '', goal: '' };
 };
 const findForm = (id) => FORMS.find((f) => f.id === id);
@@ -564,27 +658,58 @@ function actionView(tag, a) {
   if (tag === 'knowledge') {
     const goal = optionLabel(KNOW_GOALS, a.knowGoal);
     if (goal) {
-      steps[2] = '目標の' + goal + 'に届いたか確かめる';
+      steps[2] = '目標(' + goal + ')に届いたか確かめる';
     }
+  }
+  if (tag === 'understanding' && understandingReasons(a).indexOf('how') >= 0 && optionLabel(practiceOptions(a), a.practice) !== '口頭説明') {
+    steps[2] = '何も見ずに解く。できなければ解法を見直し、2〜3日後にもう一度解き直す。解き方も説明できるまで繰り返す';
   }
   if (tag === 'reasoning') {
     if (a.seen === 'yes') steps[0] = '授業で扱った教材に戻り、その問題を確認する';
     if (a.seen === 'no') steps[0] = '赤本の解説を読む';
   }
   if (tag === 'writing' && hasWritingMissing(a)) {
+    if (WKIND_STEP[a.wkind]) steps[0] = WKIND_STEP[a.wkind];
     if (a.seen === 'yes') steps[1] = '該当する教材の問題を解き直す';
     if (a.seen === 'no') steps[1] = '自分の答案と模範解答を比べて、足りなかった要素を確認する';
   }
   return {
     title: act.title, short: act.short, why: act.why, steps,
     amount: act.amount,
-    goal: (tag === 'knowledge' && a.knowGoal) ? ('目標の' + optionLabel(KNOW_GOALS, a.knowGoal) + 'を達成できた') : act.goal
+    goal: (tag === 'knowledge' && a.knowGoal) ? ('目標(' + optionLabel(KNOW_GOALS, a.knowGoal) + ')を達成できた') : act.goal
   };
 }
+/* 約束の「やること」に最初から入れる文。生徒が選んだ教材・目標、または入力した次への一手を、そのまま使う。
+ * 手順の説明は結果の上の欄に出ているので、ここでは足さない。選ぶ前・入力前は、課題の見出しを入れる */
 function promiseText(tag, a) {
   const act = actionView(tag, a);
-  const extra = act.amount ? '。目安は「' + act.amount + '」' : '';
-  return act.title + '。' + act.steps.join(' → ') + extra;
+  if (tag === 'understanding') {
+    const confirm = optionLabel(CONFIRM_OPTS, a.confirm);
+    const practice = optionLabel(practiceOptions(a), a.practice);
+    const parts = [];
+    if (a.confirm === 'ask') parts.push('先生に質問する');
+    else if (confirm) parts.push(confirm + 'で確認する');
+    if (practice) parts.push(practice === '口頭説明' ? '口頭で説明する' : practice + 'の問題を解く');
+    return parts.length ? parts.join(' → ') : act.title;
+  }
+  if (tag === 'knowledge') {
+    const phrase = KNOW_GOAL_PHRASE[a.knowGoal];
+    return phrase ? 'ミニテ集で' + phrase + 'まで繰り返す' : act.title;
+  }
+  if (needsNextHand(tag)) {
+    const next = String(a.next || '').trim();
+    return next || act.title;
+  }
+  if (tag === 'writing') {
+    const kind = writingKind(a);
+    if (kind === 'length') return act.steps.join(' → ');
+    if (kind === 'japanese') return act.short;
+    const parts = [];
+    if (WKIND_STEP[a.wkind]) parts.push(act.steps[0]);
+    if (a.seen) parts.push(act.steps[1]);
+    return parts.length ? parts.join(' → ') : act.title;
+  }
+  return act.title;
 }
 function nextHandPrompt(tag) {
   if (tag === 'reasoning') return '次に同じような問題が出たら、どう解く？';
@@ -819,7 +944,7 @@ function recLabel(r, univs) {
   return `${u ? u.name : '(消した大学)'} ${r.year}年${s ? '・' + s.name : ''}`;
 }
 function latestPromiseOf(proms, recordId) {
-  const list = proms.filter((p) => p.recordId === recordId).sort((x, y) => x.createdAt - y.createdAt);
+  const list = proms.filter((p) => p.recordId === recordId && p.kind !== 'review').sort((x, y) => x.createdAt - y.createdAt);
   return list.length ? list[list.length - 1] : null;
 }
 
@@ -848,7 +973,7 @@ function buildPrompt(a, d, prevProm) {
   }
   L.push(`- 選んだアクション: ${act.title}`);
   if (a.next.trim()) L.push(`- 次への一手: ${a.next.trim()}`);
-  if (a.good.trim()) L.push(`- 次に活かしたいこと: ${a.good.trim()}`);
+  if (a.good.trim()) L.push(`- 今回よかったところ: ${a.good.trim()}`);
   if (prevProm && prevProm.status !== 'open') {
     const label = prevProm.status === 'done' ? 'やった'
       : (prevProm.status === 'partial' ? '一部だけやった' : 'できなかった');
@@ -872,7 +997,7 @@ const STEPS = ['basic', 'time', 'misses'];
 const newAnswers = () => ({
   round: '', year: '', sched: '', score: '', full: '',
   time: '', misses: [],
-  good: '', next: '', seen: '', knowGoal: '', confirm: '', practice: ''
+  good: '', next: '', nhPick: '', seen: '', wkind: '', knowGoal: '', confirm: '', practice: ''
 });
 const newMiss = () => ({ label: '', form: '', reason: '', loss: '' });
 const newWhenState = (extra) => Object.assign({ whenOpt: '', date: '', time: '', text: '', base: '', edited: false }, extra);
@@ -912,6 +1037,10 @@ const state = {
   repromise: null,
   repromiseError: '',
   holdMsg: '',
+  holdOpen: false,
+  reviewOpt: '',
+  savedReview: null,
+  confettiShown: false,
   menuOpen: false,
   yearChecked: false,
   basicTried: false,
@@ -1196,8 +1325,11 @@ function renderPromises() {
       </div>
       ${f === 'todo' && heldCount ? `
       <section class="card stack-sm">
-        <p><strong>保留中の約束 ${heldCount}件</strong></p>
-        <div><button class="btn btn-sm" data-action="open-hold">保留中の約束を整える</button></div>
+        <div class="row-between nowrap-row">
+          <p style="margin:0"><strong>未回答の約束があります</strong></p>
+          <button class="icon-btn" data-action="toggle-hold" aria-expanded="${state.holdOpen}" aria-controls="hold-body" aria-label="${state.holdOpen ? '未回答の約束を閉じる' : '未回答の約束を開く'}">${state.holdOpen ? ICON_CHEV_UP : ICON_CHEV_DOWN}</button>
+        </div>
+        ${state.holdOpen ? `<div id="hold-body" class="stack">${heldItemsHtml(proms.filter((p) => p.status === 'held').sort((x, y) => x.createdAt - y.createdAt), recs, univs)}</div>` : ''}
       </section>` : ''}
       ${groups[f].length === 0 ? `<p class="notice">${esc(PROM_EMPTY[f])}</p>` : ''}
       ${groups[f].map((p) => {
@@ -1233,7 +1365,6 @@ function renderIntro() {
       <div><span class="badge">試作版 v3(先生の確認用)</span></div>
       ${state.followupMsg ? `<div class="notice" role="status">${esc(state.followupMsg)}</div>` : ''}
       ${pendings.length ? followupHtml(pendings[0], 1, pendings.length, recs, univs) : ''}
-      ${!pendings.length && proms.some((p) => p.status === 'open' || p.status === 'held') ? `<p class="muted">未完了の約束は、下の「約束」から見られます。</p>` : ''}
       <section class="stack-sm" aria-labelledby="univs">
         <div class="row-between">
           <h2 id="univs" style="margin:0">登録した大学</h2>
@@ -1450,11 +1581,11 @@ function renderMisses() {
 }
 const MAN_GROUPS = [
   { id: 'nexts', label: '次への一手' },
-  { id: 'goods', label: '次に活かしたいこと' }
+  { id: 'goods', label: '今回よかったところ' }
 ];
 const MAN_EMPTY = {
   nexts: 'まだありません。結果の「次への一手」に書くと、ここに溜まります。',
-  goods: 'まだありません。結果の「次に活かしたいこと」に書くと、ここに溜まります。'
+  goods: 'まだありません。結果の「今回よかったところ」に書くと、ここに溜まります。'
 };
 function renderManual() {
   const m = loadManual();
@@ -1531,6 +1662,10 @@ function extraChoiceHtml(tag, a) {
   if (tag === 'writing' && hasWritingMissing(a)) {
     return `
       <fieldset>
+        <legend>どちらの論述でしたか?</legend>
+        ${radios('wkind', WKIND_OPTS, a.wkind, 'data-ch="wkind"', 'col')}
+      </fieldset>
+      <fieldset>
         <legend>今までの教材で同じ・似た問題に出会ったことがありますか?</legend>
         ${radios('seen', SEEN_OPTS, a.seen, 'data-ch="seen"', 'col')}
       </fieldset>`;
@@ -1541,16 +1676,22 @@ const GOOD_HINT = '例: この単元は対策したからできた / 時間配�
 function goodFieldHtml(required) {
   return `
     <label class="field">
-      <span>次に活かしたいこと${required ? '' : ' (任意)'}</span>
+      <span>今回よかったところ${required ? '' : ' (任意)'}</span>
       <textarea class="short" maxlength="120" data-text="good" placeholder="${esc(GOOD_HINT)}">${esc(state.a.good)}</textarea>
     </label>`;
 }
 function nextHandFieldsHtml(tag, a) {
   if (!needsNextHand(tag)) return '';
+  const chips = (NEXT_HAND_CHIPS[tag] || []).map((t, i) => ({ id: 'c' + i, label: t }));
+  const opts = chips.concat([{ id: NH_OWN, label: '自分で入力する' }]);
   return `
     <section class="card stack">
+      <fieldset>
+        <legend>${esc(nextHandPrompt(tag))}</legend>
+        ${radios('nh', opts, a.nhPick, 'data-nh="1"', 'col')}
+      </fieldset>
       <label class="field">
-        <span>${esc(nextHandPrompt(tag))}</span>
+        <span>選んだ文は、書き換えられます</span>
         <textarea class="short" maxlength="120" data-text="next" placeholder="${esc(nextHandHint(tag))}">${esc(a.next)}</textarea>
       </label>
     </section>`;
@@ -1571,7 +1712,26 @@ function textFieldHtml(st, target) {
       <span>やること(自分の言葉や量に書き換えられます)</span>
       <textarea class="short" maxlength="200" data-pr="text" data-prt="${target}">${esc(st.text)}</textarea>
     </label>
-    <div><button class="btn btn-quiet btn-sm" data-action="reset-text" data-prt="${target}">元の文にもどす</button></div>`;
+    <div class="row row-end">${target === 'promise'
+      ? `<button class="btn btn-quiet btn-sm" data-action="clear-text" data-prt="${target}">文を消す</button>`
+      : `<button class="btn btn-quiet btn-sm" data-action="reset-text" data-prt="${target}">元の文にもどす</button>`}</div>`;
+}
+
+/* 紙吹雪。外部ライブラリなし、CSSだけで動かす。動きを減らす設定の端末では、CSSで隠す */
+const CONFETTI_COLORS = ['#e53935', '#fb8c00', '#fdd835', '#43a047', '#1e88e5', '#8e24aa', '#ec407a'];
+function confettiHtml() {
+  const n = 30;
+  let out = '';
+  for (let i = 0; i < n; i++) {
+    const ang = (i / n) * Math.PI * 2;
+    const dx = Math.round(Math.cos(ang) * (50 + (i % 5) * 16));
+    const up = 30 + (i % 4) * 14;
+    const fall = 70 + (i % 6) * 12;
+    const rot = (i % 2 ? 1 : -1) * (240 + (i % 7) * 60);
+    const delay = (i % 6) * 0.04;
+    out += `<i style="--dx:${dx}px;--up:${up}px;--fall:${fall}px;--rot:${rot}deg;background:${CONFETTI_COLORS[i % CONFETTI_COLORS.length]};animation-delay:${delay}s"></i>`;
+  }
+  return `<span class="confetti" aria-hidden="true">${out}</span>`;
 }
 
 function promiseHtml(d, a) {
@@ -1579,9 +1739,8 @@ function promiseHtml(d, a) {
     const p = state.savedPromise;
     const icsBtn = ENABLE_CALENDAR && p.when ? '<button class="btn btn-primary" data-action="ics">カレンダーに入れる</button>' : '';
     return `
-      <section class="stack" aria-labelledby="pc">
-        <h2 id="pc">約束カード</h2>
-        ${scrapHtml(p, {})}
+      <section class="stack-sm" aria-labelledby="pc">
+        <div class="notice" role="status"><strong id="pc">約束カードに保存しました</strong>${state.savedReview ? `<br>見直し(${esc(fmtWhen(state.savedReview.when))})も入れました` : ''}</div>
         ${p.when ? '' : '<p class="muted">日付はまだ決めていません。決めたくなったら、トップ画面から日付を決められます。</p>'}
         ${icsBtn ? `<div class="row">${icsBtn}</div>` : ''}
         <p id="promise-status" class="muted" role="status"></p>
@@ -1594,6 +1753,11 @@ function promiseHtml(d, a) {
       <h2 id="pf">約束する</h2>
       ${textFieldHtml(p, 'promise')}
       ${whenFieldsHtml(p, 'promise')}
+      ${(p.whenOpt && p.whenOpt !== 'later') ? `
+      <fieldset>
+        <legend>2〜3日後の見直しも、約束に入れますか?(任意)</legend>
+        ${radios('review', REVIEW_OPTS, state.reviewOpt || 'none', 'data-review="1"', 'fit')}
+      </fieldset>` : ''}
       ${errorHtml(state.promiseError)}
       <div><button class="btn btn-primary" data-action="promise">約束する</button></div>
     </section>`;
@@ -1605,6 +1769,11 @@ function renderResult() {
   const tag = pickedTag();
   const cr = pct(a.score, a.full);
   const prompt = buildPrompt(a, d, state.result.prevProm);
+  /* 目標の正答率に届いたら、正答率の横にクラッカー。紙吹雪は結果が出たときの1回だけ(選び直しの再表示では出さない) */
+  const univ = getUniv(state.univId);
+  const reached = !!univ && univ.target != null && cr >= univ.target;
+  let burst = '';
+  if (reached && !state.confettiShown) { burst = confettiHtml(); state.confettiShown = true; }
   return `
     <div class="stack">
       <h1 tabindex="-1">結果</h1>
@@ -1614,7 +1783,7 @@ function renderResult() {
 
       <section class="card stack" aria-labelledby="found">
         <h2 id="found">正答率</h2>
-        <p><span class="score-big">${cr}%</span></p>
+        <p><span class="score-wrap"><span class="score-big">${cr}%</span>${reached ? `<span class="cele${burst ? ' pop' : ''}" aria-hidden="true">🎉</span><span class="sr-only">目標の正答率に届きました</span>${burst}` : ''}</span></p>
         <p>${esc(a.full)}問中 ${esc(a.score)}問正解</p>
         ${tagChoiceHtml(d)}
       </section>
@@ -1630,9 +1799,11 @@ function renderResult() {
       ${promiseHtml(d, a)}
 
       <section class="card stack-sm" aria-labelledby="ai">
-        <h2 id="ai">AIに相談してみる(任意)</h2>
-        <div><button class="btn" data-action="toggle-ai" aria-expanded="${state.showAi}">${state.showAi ? '閉じる' : 'AIに渡す文章を見る'}</button></div>
-        ${state.showAi ? `
+        <div class="row-between nowrap-row">
+          <h2 id="ai" style="margin:0">AIに相談してみる(任意)</h2>
+          <button class="icon-btn" data-action="toggle-ai" aria-expanded="${state.showAi}" aria-controls="ai-body" aria-label="${state.showAi ? 'AIに相談するを閉じる' : 'AIに相談するを開く'}">${state.showAi ? ICON_CHEV_UP : ICON_CHEV_DOWN}</button>
+        </div>
+        ${state.showAi ? `<div id="ai-body" class="stack-sm">
         <div class="notice notice-warn stack-sm">
           <p><strong>使う前に確認してください</strong></p>
           <ul class="plain">
@@ -1646,31 +1817,34 @@ function renderResult() {
           <span>AIに渡す文章(中身を読んでから使ってください)</span>
           <textarea id="prompt-text" readonly style="min-height:260px">${esc(prompt)}</textarea>
         </label>
-        <div class="row">
-          <button class="btn btn-primary" data-action="copy">コピーする</button>
+        <div class="row row-end">
           <span id="copy-status" class="muted" role="status"></span>
-        </div>` : ''}
+          <button class="btn btn-primary" data-action="copy">コピーする</button>
+        </div></div>` : ''}
       </section>
 
-      <div class="row">
-        <button class="btn btn-quiet" data-action="home">トップにもどる</button>
+      <div class="row row-end">
+        <button class="btn btn-quiet" data-action="home">保存してトップに戻る</button>
       </div>
     </div>`;
 }
 
 /* --- 保留ゾーン --- */
 function renderHold() {
-  const recs = loadRecs();
-  const univs = loadUnivs();
   const held = loadProms().filter((p) => p.status === 'held').sort((x, y) => x.createdAt - y.createdAt);
-  const rp = state.repromise;
   return `
     <div class="stack">
-      <h1 tabindex="-1">保留中の約束</h1>
+      <h1 tabindex="-1">未回答の約束</h1>
       <p>できなかった約束を、ここに残しています。溜まるのは悪いことではありません。いまの自分に合う形に直して、また約束することも、手放すこともできます。</p>
       ${state.holdMsg ? `<div class="notice" role="status">${esc(state.holdMsg)}</div>` : ''}
-      ${held.length === 0 ? '<p class="notice">保留中の約束はありません。</p>' : ''}
-      ${held.map((p) => {
+      ${held.length === 0 ? '<p class="notice">未回答の約束はありません。</p>' : ''}
+      ${heldItemsHtml(held, loadRecs(), loadUnivs())}
+    </div>`;
+}
+/* できなかった約束の一覧(小さくして再約束 / 手放す)。約束ページの「未回答の約束があります」の中でも使う */
+function heldItemsHtml(held, recs, univs) {
+  const rp = state.repromise;
+  return `${held.map((p) => {
         const rec = recs.find((r) => r.id === p.recordId);
         const reason = (FU_REASONS.find((r) => r.id === p.reason) || {}).label;
         return `
@@ -1697,8 +1871,7 @@ function renderHold() {
             <button class="btn btn-quiet" data-action="release" data-id="${esc(p.id)}">手放す</button>
           </div>`}
         </section>`;
-      }).join('')}
-    </div>`;
+      }).join('')}`;
 }
 
 const VIEWS = {
@@ -1711,8 +1884,12 @@ const VIEWS = {
 /* --- 下のタブバー(わたしのトリセツ / ホーム / 約束)。入力中の画面と最初の案内では隠す --- */
 const ICON_BACK = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg>';
 const ICON_HOME = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 11l9-8 9 8"/><path d="M5 10v10h14V10"/><path d="M10 20v-6h4v6"/></svg>';
-const ICON_NOTE = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="3" width="14" height="18" rx="2"/><path d="M9 8h6"/><path d="M9 12h6"/><path d="M9 16h4"/></svg>';
-const ICON_BRAIN = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 18a4 4 0 1 0-3.46-6 4 4 0 0 0-2.08-7.16 3 3 0 0 0 5.54-1.09A3 3 0 0 1 15 5a3 3 0 0 1 3 3 4 4 0 0 1-2.08 7.16A4 4 0 1 1 12 18z"/><path d="M12 13v5"/><path d="M10 9.5c.5-1 1.5-1.5 2-1.5s1.5.5 2 1.5"/><path d="M9.5 13.5c.8.5 1.7.8 2.5.8s1.7-.3 2.5-.8"/></svg>';
+/* 約束: 指切りげんまん(左右の手の小指がからむ) */
+const ICON_NOTE = '<img class="ic-img" alt="" aria-hidden="true" src="data:image/png;base64,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">';
+/* わたしのトリセツ: ぱっと点灯した電球 */
+const ICON_BRAIN = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5.5a5 5 0 0 0-3 9c.6.5 1 1.1 1 2h4c0-.9.4-1.5 1-2a5 5 0 0 0-3-9z" fill="currentColor" fill-opacity=".22"/><path d="M10 19.2h4"/><path d="M10.8 21.5h2.4"/><path d="M12 1.5v1.2"/><path d="M4.2 4.7l.9.9"/><path d="M19.8 4.7l-.9.9"/><path d="M2 11h1.3"/><path d="M20.7 11H22"/></svg>';
+const ICON_CHEV_DOWN = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>';
+const ICON_CHEV_UP = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 15l6-6 6 6"/></svg>';
 const ICON_MENU = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M4 7h16"/><path d="M4 12h16"/><path d="M4 17h16"/></svg>';
 const NAV_HIDDEN_STEPS = ['welcome'].concat(STEPS);
 const HEADER_HIDDEN_STEPS = ['welcome'].concat(STEPS);
@@ -1755,7 +1932,7 @@ function renderTabbar() {
   if (partN) bits.push('もう少し' + partN + '件');
   const badges = (todoN || partN) ? `<span class="tab-badges" aria-hidden="true">${todoN ? `<b class="tab-badge">${todoN > 9 ? '9+' : todoN}</b>` : ''}${partN ? `<b class="tab-badge blue">${partN > 9 ? '9+' : partN}</b>` : ''}</span>` : '';
   bar.innerHTML = `<div class="tabbar-in">
-    <button class="tab${onMan ? ' on' : ''}" data-action="open-manual" ${onMan ? 'aria-current="page"' : ''}>${ICON_BRAIN}<span>トリセツ</span></button>
+    <button class="tab${onMan ? ' on' : ''}" data-action="open-manual" ${onMan ? 'aria-current="page"' : ''}>${ICON_BRAIN}<span class="nowrap">わたしのトリセツ</span></button>
     <button class="tab${cur === 'intro' ? ' on' : ''}" data-action="home" ${cur === 'intro' ? 'aria-current="page"' : ''}>${ICON_HOME}<span>ホーム</span></button>
     <button class="tab${onProm ? ' on' : ''}" data-action="open-promises" ${onProm ? 'aria-current="page"' : ''} aria-label="約束${bits.length ? '(' + bits.join('、') + ')' : ''}">${ICON_NOTE}<span>約束</span>${badges}</button>
   </div>`;
@@ -1919,16 +2096,17 @@ function choiceError() {
   }
   if (tag === 'knowledge' && !a.knowGoal) return 'ミニテ集の目標点を選んでください。';
   if (tag === 'reasoning' && !a.seen) return '授業で扱ったことがあるか、選んでください。';
+  if (tag === 'writing' && hasWritingMissing(a) && !a.wkind) return '知識系か考察系か、選んでください。';
   if (tag === 'writing' && hasWritingMissing(a) && !a.seen) return '似た問題に出会ったことがあるか、選んでください。';
   if (needsNextHand(tag) && !a.next.trim()) return '次への一手を1文で入れてください。';
-  if (tag === 'stable' && !a.good.trim()) return '次に活かしたいことを1文で入れてください。';
+  if (tag === 'stable' && !a.good.trim()) return '今回よかったところを1文で入れてください。';
   return '';
 }
 function startFlow() {
   state.a = newAnswers();
   state.a.misses.push(newMiss());
   state.started = true;
-  state.saved = false; state.savedId = ''; state.savedPromise = null;
+  state.saved = false; state.savedId = ''; state.savedPromise = null; state.savedReview = null;
   state.pickedTag = ''; state.manualFlushed = { good: '', next: '' };
   state.showAi = false; state.followupMsg = '';
   state.yearChecked = false; state.basicTried = false;
@@ -1947,11 +2125,15 @@ function showResult() {
   a.round = String(Math.min(3, all.length + 1));
   const d = decide(a);
   state.result = { d, prev, prevSame: mine.length > 0, prevProm };
-  state.pickedTag = d.primary;
-  a.seen = ''; a.knowGoal = ''; a.confirm = ''; a.practice = ''; a.good = ''; a.next = '';
+  state.pickedTag = d.primary; state.confettiShown = false;
+  a.seen = ''; a.wkind = ''; a.knowGoal = ''; a.confirm = ''; a.practice = ''; a.good = ''; a.next = ''; a.nhPick = '';
+  state.reviewOpt = '';
   /* 出し直しのとき、前の結果につくった約束は消す(結果が変わるため) */
-  if (state.savedPromise) saveProms(loadProms().filter((p) => p.id !== state.savedPromise.id));
-  state.savedPromise = null; state.promiseError = '';
+  if (state.savedPromise) {
+    const gone = [state.savedPromise.id].concat(state.savedReview ? [state.savedReview.id] : []);
+    saveProms(loadProms().filter((p) => gone.indexOf(p.id) < 0));
+  }
+  state.savedPromise = null; state.savedReview = null; state.promiseError = '';
   state.manualFlushed = { good: '', next: '' };
   state.saveFailed = !ensureRecord();
   const text = promiseText(d.primary, a);
@@ -2193,6 +2375,10 @@ const onClick = async (e) => {
     const st = whenTarget(btn.dataset.prt);
     st.text = st.base; st.edited = false;
     render();
+  } else if (act === 'clear-text') {
+    const st = whenTarget(btn.dataset.prt);
+    st.text = ''; st.edited = st.base !== '';
+    render({ focusSelector: `[data-pr="text"][data-prt="${btn.dataset.prt}"]` });
   } else if (act === 'promise') {
     const st = state.promise;
     const choiceErr = choiceError();
@@ -2212,8 +2398,21 @@ const onClick = async (e) => {
     updateRec(rec.id, { promiseId: p.id });
     state.promiseError = '';
     state.savedPromise = p;
+    state.savedReview = null;
+    /* 見直しの約束(任意)。約束の日から2日後・3日後 */
+    const n = Number(state.reviewOpt);
+    if (n && p.when) {
+      const base = parseDateStr(p.when);
+      if (base) {
+        const day = toDateStr(new Date(base.getFullYear(), base.getMonth(), base.getDate() + n));
+        const rv = makePromise(rec.id, tag, 'all', `見直し(${n}日後): ${text}`, '', p.when.length > 10 ? `${day}${p.when.slice(10)}` : day);
+        rv.kind = 'review';
+        const list = loadProms(); list.push(rv);
+        if (saveProms(list)) state.savedReview = rv;
+      }
+    }
     render({ focusTop: false });
-    const el = document.getElementById('pc'); if (el) el.scrollIntoView({ block: 'start' });
+    const el = document.getElementById('pc'); if (el) el.scrollIntoView({ block: 'center' });
   } else if (act === 'ics') {
     downloadText('seibutsu-yakusoku.ics', buildIcs(state.savedPromise), 'text/calendar;charset=utf-8');
     setStatus('promise-status', 'カレンダー用のファイルを保存しました。開くと、カレンダーに入ります。');
@@ -2231,6 +2430,10 @@ const onClick = async (e) => {
       state.saved = false; state.savedId = ''; state.savedPromise = null; state.followupMsg = '';
       goto('welcome');
     }
+  } else if (act === 'toggle-hold') {
+    state.holdOpen = !state.holdOpen;
+    state.repromise = null; state.repromiseError = '';
+    render();
   } else if (act === 'toggle-ai') {
     state.showAi = !state.showAi;
     render();
@@ -2248,7 +2451,7 @@ const onClick = async (e) => {
     });
     const msg = (f.status === 'done'
       ? 'やりきりました。それがいちばん大事です。次の赤本で、効果を確かめましょう。'
-      : (f.status === 'partial' ? 'できた分だけで十分です。次は量を減らして、やりきれる形にしましょう。' : '保留の約束として残しました。いつでも、小さくして出し直せます。') + ' ' + (FU_REASON_MSG[f.reason] || '')).trim();
+      : (f.status === 'partial' ? 'できた分だけで十分です。次は量を減らして、やりきれる形にしましょう。' : '未完了の約束として残しました。いつでも、小さくして出し直せます。') + ' ' + (FU_REASON_MSG[f.reason] || '')).trim();
     state.followup = { status: '', reason: '' };
     state.followupError = '';
     state.followupMsg = '';
@@ -2341,10 +2544,14 @@ const onClick = async (e) => {
       msg: np.when ? `約束しました(${fmtWhen(np.when)})。` : '約束しました。日付は、約束のページであとから決められます。'
     });
   } else if (act === 'release') {
-    if (window.confirm('この約束を手放します。記録には残りますが、保留から外れます。よろしいですか?')) {
+    if (window.confirm('この約束を手放します。記録には残りますが、未完了の一覧から外れます。よろしいですか?')) {
       updateProm(btn.dataset.id, { status: 'released' });
-      state.holdMsg = '手放しました。手放すのも、ひとつの選び方です。';
-      render({ focusTop: true });
+      if (state.step === 'promises') {
+        showPromises({ filter: 'todo', msg: '手放しました。手放すのも、ひとつの選び方です。' });
+      } else {
+        state.holdMsg = '手放しました。手放すのも、ひとつの選び方です。';
+        render({ focusTop: true });
+      }
     }
   } else if (act === 'open-about') {
     goto('about');
@@ -2441,11 +2648,25 @@ app.addEventListener('change', (e) => {
     render({ focusSelector: radioSel(t) });
   } else if (t.matches('[data-pick]')) {
     state.pickedTag = t.value;
-    state.a.seen = ''; state.a.knowGoal = ''; state.a.confirm = ''; state.a.practice = '';
+    state.a.seen = ''; state.a.wkind = ''; state.a.knowGoal = ''; state.a.confirm = ''; state.a.practice = '';
+    /* ひな形を選んでいたら、別の課題の文が残らないように消す(自分で書いた文は残す) */
+    if (state.a.nhPick && state.a.nhPick !== NH_OWN) state.a.next = '';
+    state.a.nhPick = '';
     state.promiseError = '';
     refreshPromiseText();
     if (state.savedId) updateRec(state.savedId, { primary: t.value });
     render({ focusSelector: radioSel(t) });
+  } else if (t.matches('[data-review]')) {
+    state.reviewOpt = t.value === 'none' ? '' : t.value;
+    render({ focusSelector: radioSel(t) });
+  } else if (t.matches('[data-nh]')) {
+    const a = state.a;
+    a.nhPick = t.value;
+    if (t.value === NH_OWN) a.next = '';
+    else a.next = (NEXT_HAND_CHIPS[pickedTag()] || [])[Number(t.value.slice(1))] || '';
+    state.promiseError = '';
+    refreshPromiseText();
+    render({ focusSelector: t.value === NH_OWN ? '[data-text="next"]' : radioSel(t) });
   } else if (t.matches('[data-ch]')) {
     state.a[t.dataset.ch] = t.value;
     state.promiseError = '';
@@ -2464,6 +2685,21 @@ app.addEventListener('input', (e) => {
     if (!e.isComposing) cleanDigits(t);
     state.a[t.dataset.text] = t.value;
     if (t.dataset.text === 'sched') updateSchedSuggest();
+    /* 次への一手を入力したら、約束の「やること」にも(自分で書き換える前なら)すぐ反映する */
+    if (t.dataset.text === 'next' && state.step === 'result') {
+      /* ひな形から書き換えたら、「自分で入力する」に切り替える */
+      const chip = (NEXT_HAND_CHIPS[pickedTag()] || [])[Number(String(state.a.nhPick).slice(1))];
+      if (state.a.nhPick && state.a.nhPick !== NH_OWN && t.value !== chip) {
+        state.a.nhPick = NH_OWN;
+        const own = app.querySelector(`input[name="nh"][value="${NH_OWN}"]`);
+        if (own) own.checked = true;
+      }
+    }
+    if (t.dataset.text === 'next' && state.step === 'result' && state.promise && !state.savedPromise) {
+      refreshPromiseText();
+      const box = app.querySelector('[data-pr="text"][data-prt="promise"]');
+      if (box && !state.promise.edited) box.value = state.promise.text;
+    }
     if (t.dataset.text === 'year' && (t.value.length === 4 || state.yearChecked || state.basicTried)) {
       const msg = (state.basicTried && t.value === '') ? '解いた年度を入れてください。' : yearFormatError(t.value);
       const bad = !!msg;
