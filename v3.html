@@ -252,10 +252,11 @@ table.data td.act { width: 44px; text-align: right; padding: 2px 4px; }
 
 /* 上のヘッダー(タイトル画像 + ハンバーガー) */
 #app-header { position: sticky; top: 0; z-index: 20; background: var(--card); border-bottom: 1px solid var(--border); }
-.app-header-in { position: relative; max-width: 640px; margin: 0 auto; display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 8px 12px; min-height: 56px; }
-.app-title-btn { display: flex; align-items: center; min-height: 44px; padding: 0; border: 0; background: none; cursor: pointer; }
+.app-header-in { position: relative; max-width: 640px; margin: 0 auto; display: grid; grid-template-columns: 44px 1fr 44px; align-items: center; gap: 8px; padding: 8px 12px; min-height: 56px; }
+.app-title-btn { display: flex; align-items: center; justify-content: center; justify-self: center; min-height: 44px; padding: 0; border: 0; background: none; cursor: pointer; max-width: 100%; }
 .app-title-btn:disabled { cursor: default; }
-.app-title-img { height: 40px; width: auto; max-width: min(240px, calc(100vw - 140px)); display: block; object-fit: contain; object-position: left center; }
+.app-title-img { height: 40px; width: auto; max-width: min(240px, calc(100vw - 140px)); display: block; object-fit: contain; object-position: center; }
+.header-slot { width: 44px; height: 44px; }
 .header-back { border: 0; background: none; color: var(--fg); }
 .header-back:hover { border: 0; color: var(--primary); }
 .manual-item { display: flex; gap: 8px; align-items: flex-start; border: 1px solid var(--border); border-radius: var(--radius); padding: 12px; background: var(--card); }
@@ -342,7 +343,7 @@ const FORMS = [
     { id: 'what', label: '何を書けばいいかわからなかった', tag: 'understanding' },
     { id: 'missing', label: '書いたが、要素(キーワード)が足りなかった', tag: 'writing' },
     { id: 'length', label: '字数制限に収めようとして時間を浪費した', tag: 'writing' },
-    { id: 'japanese', label: '書いた文の日本語がおかしかった(主語と述語、原因と結果がつながらない)', tag: 'writing' },
+    { id: 'japanese', label: '書いた文の日本語がおかしかった(主語と述語・原因と結果がおかしい、てにをはがおかしい、用語の使い方がおかしいなど)', tag: 'writing' },
     { id: 'notime', label: '時間がなくて書けなかった', tag: 'timeshort' }
   ] },
   { id: 'calc', label: '計算', reasons: [
@@ -401,7 +402,8 @@ const NEXT_HAND_CHIPS = {
     '先に設問を読み、注目するポイントを押さえてから、実験の説明を読む',
     '実験の目的と、グラフ・表が何を示しているかを、最初に確認する',
     '実験群と対照群で異なる条件に印をつける',
-    '根拠を示しながら、口に出して解説する'
+    'グラフや表に線や丸をつけることで理解しやすくする',
+    '読み取ったことを自分の言葉でメモしながら読む'
   ],
   calc: [
     '途中式を省かずに書く',
@@ -427,12 +429,12 @@ const NEXT_HAND_CHIPS = {
   ]
 };
 const NH_OWN = 'own';
-/* 約束の見直し日(約束の日から数える)。先生方の回答で、2〜3日後に見直す・解き直すが複数出た */
+/* 赤本の解き直し(任意)。先生方の回答で、時間をおいて解き直すが複数出た。「やる」なら1週間以内の約束が別に1つ入る */
 const REVIEW_OPTS = [
-  { id: 'none', label: '入れない' },
-  { id: '2', label: '2日後' },
-  { id: '3', label: '3日後' }
+  { id: 'yes', label: 'やる' },
+  { id: 'none', label: 'やらない' }
 ];
+const REDO_TEXT = '赤本を解き直す';
 const SEEN_OPTS = [
   { id: 'yes', label: 'ある' },
   { id: 'no', label: 'ない' }
@@ -745,7 +747,16 @@ function fmtWhen(when) {
   if (when.length <= 10) return fmtDate(when);
   return `${fmtDate(when)} ${when.slice(11, 16)}`;
 }
+/* 「次の赤本を解いているとき」を選んだ約束は日付を持たず、whenNext が true になる */
+const WHEN_NEXT = 'next';
+const WHEN_NEXT_LABEL = '次の赤本を解いているとき';
+function whenLabel(p) {
+  if (p.when) return fmtWhen(p.when);
+  return p.whenNext ? WHEN_NEXT_LABEL : fmtWhen('');
+}
 function isDue(p) {
+  /* 次の赤本の約束は、次の記録(別の赤本)ができてから「達成できましたか?」に出す */
+  if (p.whenNext) return loadRecs().some((r) => r.id !== p.recordId && r.ts > p.createdAt);
   if (!p.when) return true;
   if (p.when.length <= 10) return p.when <= todayStr();
   return p.when <= toLocalIso(new Date());
@@ -757,12 +768,13 @@ function whenOptions() {
     { id: at(0), label: '今日' },
     { id: at(1), label: '明日' },
     { id: at(3), label: '3日以内' },
-    { id: at(7), label: '1週間以内' }
+    { id: at(7), label: '1週間以内' },
+    { id: WHEN_NEXT, label: '次の赤本を解いているとき' }
   ];
 }
 /* 選んだ内容から when を作る。未選択・不正のときは null */
 function composeWhen(st) {
-  if (st.whenOpt === 'later') return '';
+  if (st.whenOpt === 'later' || st.whenOpt === WHEN_NEXT) return '';
   const date = st.whenOpt === 'custom' ? st.date : st.whenOpt;
   if (!date || !parseDateStr(date)) return null;
   return st.time ? `${date}T${st.time}` : date;
@@ -1254,9 +1266,9 @@ function scrapHtml(p, opts) {
     <div class="scrap-wrap"${opts && opts.id ? ` id="${opts.id}"` : ''}>
       <div class="scrap">
         <p class="scrap-head"><span>やくそく</span></p>
-        <p class="scrap-when">${esc(fmtWhen(p.when))}</p>
+        <p class="scrap-when">${esc(whenLabel(p))}</p>
         <p class="scrap-body">${esc(p.text)}</p>
-        ${(act && act.goal) ? `<p class="scrap-goal">めじるし: <mark>${esc(act.goal)}</mark></p>` : ''}
+        ${(act && act.goal && !(opts && opts.noGoal)) ? `<p class="scrap-goal">めじるし: <mark>${esc(act.goal)}</mark></p>` : ''}
       </div>
       ${done ? `<div class="stamp${pop}">${STAMP_SVG}</div>` : ''}
       ${partial ? `<div class="fight${pop}">${FIGHT_SVG}</div>` : ''}
@@ -1271,8 +1283,8 @@ function followupHtml(p, n, total, recs, univs) {
     <section class="card card-accent stack" aria-labelledby="fu">
       <div class="row-between"><h2 id="fu">約束、達成できましたか?</h2>${total > 1 ? `<span class="muted">${n} / ${total}件</span>` : ''}</div>
       <p class="muted">${esc(rec ? recLabel(rec, univs) : '')} の赤本</p>
-      ${scrapHtml(p, {})}
-      ${!p.when ? `
+      ${scrapHtml(p, { noGoal: true })}
+      ${!p.when && !p.whenNext ? `
       <div class="row">
         <label class="field" style="flex:1;min-width:10em"><span>日付を決めておく(任意)</span>
           <input type="date" min="${todayStr()}" data-setdate="${esc(p.id)}"></label>
@@ -1286,9 +1298,9 @@ function followupHtml(p, n, total, recs, univs) {
         ${radios('fu-reason', FU_REASONS, f.reason, 'data-fu="reason"', 'col')}
       </fieldset>` : ''}
       ${errorHtml(state.followupError)}
-      <div class="row">
-        <button class="btn btn-primary" data-action="record-followup" data-id="${esc(p.id)}">記録する</button>
+      <div class="row row-end">
         ${state.step === 'promises' ? '<button class="btn btn-quiet" data-action="close-followup">やめる</button>' : ''}
+        <button class="btn btn-primary" data-action="record-followup" data-id="${esc(p.id)}">記録する</button>
       </div>
     </section>`;
 }
@@ -1485,7 +1497,7 @@ function renderUniv() {
         <p>${univ.target != null ? `目標の正答率: <strong>${univ.target}%</strong>` : '目標の正答率: まだ決めていません'}</p>
         <button class="icon-btn small" data-action="edit-target" aria-label="目標の正答率を編集する">${ICON_PEN}</button>
       </div>`}
-      <div><button class="btn btn-primary" data-action="start"><span class="ic">${ICON_PEN}追加</span></button></div>
+      <div class="row row-end"><button class="btn btn-primary" data-action="start"><span class="ic">${ICON_PEN}追加</span></button></div>
       ${trendSection(univ, recs, null, '赤本の軌跡(正答率)', true)}
     </div>`;
 }
@@ -1574,7 +1586,7 @@ function renderMisses() {
       <p>最大3つまで振り返りましょう</p>
       ${a.misses.length === 0 ? '<p class="notice">失点した設問がない場合は、このまま次へ進めます。</p>' : ''}
       ${a.misses.map(renderMiss).join('')}
-      <div><button class="btn" data-action="add-miss" ${a.misses.length >= 3 ? 'disabled' : ''}>設問を追加する(${a.misses.length}/3)</button></div>
+      <div class="row row-end"><button class="btn" data-action="add-miss" ${a.misses.length >= 3 ? 'disabled' : ''}>設問を追加する(${a.misses.length}/3)</button></div>
       ${errorHtml(state.error)}
       ${nav('misses', '結果を見る')}
     </div>`;
@@ -1709,11 +1721,11 @@ function whenFieldsHtml(st, target) {
 function textFieldHtml(st, target) {
   return `
     <label class="field">
-      <span>やること(自分の言葉や量に書き換えられます)</span>
+      <span>やること(編集できます)</span>
       <textarea class="short" maxlength="200" data-pr="text" data-prt="${target}">${esc(st.text)}</textarea>
     </label>
     <div class="row row-end">${target === 'promise'
-      ? `<button class="btn btn-quiet btn-sm" data-action="clear-text" data-prt="${target}">文を消す</button>`
+      ? `<button class="btn btn-quiet btn-sm" data-action="clear-text" data-prt="${target}">文を消して自分で書く</button>`
       : `<button class="btn btn-quiet btn-sm" data-action="reset-text" data-prt="${target}">元の文にもどす</button>`}</div>`;
 }
 
@@ -1740,8 +1752,8 @@ function promiseHtml(d, a) {
     const icsBtn = ENABLE_CALENDAR && p.when ? '<button class="btn btn-primary" data-action="ics">カレンダーに入れる</button>' : '';
     return `
       <section class="stack-sm" aria-labelledby="pc">
-        <div class="notice" role="status"><strong id="pc">約束カードに保存しました</strong>${state.savedReview ? `<br>見直し(${esc(fmtWhen(state.savedReview.when))})も入れました` : ''}</div>
-        ${p.when ? '' : '<p class="muted">日付はまだ決めていません。決めたくなったら、トップ画面から日付を決められます。</p>'}
+        <div class="notice" role="status"><strong id="pc">約束カードに保存しました</strong>${state.savedReview ? `<br>赤本の解き直し(${esc(fmtWhen(state.savedReview.when))}まで)も入れました` : ''}</div>
+        ${p.when ? '' : (p.whenNext ? '<p class="muted">次の赤本を解いたあと、トップ画面で「約束、達成できましたか?」と聞きます。</p>' : '<p class="muted">日付はまだ決めていません。決めたくなったら、トップ画面から日付を決められます。</p>')}
         ${icsBtn ? `<div class="row">${icsBtn}</div>` : ''}
         <p id="promise-status" class="muted" role="status"></p>
       </section>
@@ -1753,9 +1765,9 @@ function promiseHtml(d, a) {
       <h2 id="pf">約束する</h2>
       ${textFieldHtml(p, 'promise')}
       ${whenFieldsHtml(p, 'promise')}
-      ${(p.whenOpt && p.whenOpt !== 'later') ? `
+      ${(p.whenOpt && p.whenOpt !== 'later' && p.whenOpt !== WHEN_NEXT) ? `
       <fieldset>
-        <legend>2〜3日後の見直しも、約束に入れますか?(任意)</legend>
+        <legend>赤本の解きなおし、一週間以内にもう1回やる?</legend>
         ${radios('review', REVIEW_OPTS, state.reviewOpt || 'none', 'data-review="1"', 'fit')}
       </fieldset>` : ''}
       ${errorHtml(state.promiseError)}
@@ -1814,7 +1826,7 @@ function renderResult() {
           </ul>
         </div>
         <label class="field">
-          <span>AIに渡す文章(中身を読んでから使ってください)</span>
+          <span>AIに渡す文章</span>
           <textarea id="prompt-text" readonly style="min-height:260px">${esc(prompt)}</textarea>
         </label>
         <div class="row row-end">
@@ -1851,7 +1863,7 @@ function heldItemsHtml(held, recs, univs) {
         <section class="card stack">
           <dl class="kv">
             <dt>赤本</dt><dd>${esc(rec ? recLabel(rec, univs) : '')}</dd>
-            <dt>約束した日</dt><dd>${esc(fmtWhen(p.when))}</dd>
+            <dt>約束した日</dt><dd>${esc(whenLabel(p))}</dd>
             <dt>やること</dt><dd>${esc(p.text)}</dd>
             ${reason ? `<dt>理由</dt><dd>${esc(reason)}</dd>` : ''}
           </dl>
@@ -1947,7 +1959,7 @@ function renderHeader() {
   const man = loadManual();
   const hasData = loadUnivs().length || loadRecs().length || loadProms().length || man.goods.length || man.nexts.length;
   el.innerHTML = `<div class="app-header-in">
-    ${onHome ? '' : `<button class="icon-btn header-back" data-action="nav-back" aria-label="戻る">${ICON_BACK}</button>`}
+    ${onHome ? '<span class="header-slot" aria-hidden="true"></span>' : `<button class="icon-btn header-back" data-action="nav-back" aria-label="戻る">${ICON_BACK}</button>`}
     <button class="app-title-btn" data-action="home" ${onHome ? 'disabled' : ''} aria-label="赤本セルフチェック">
       <img src="akahon-title-header.png" alt="赤本セルフチェック" class="app-title-img" width="396" height="132">
     </button>
@@ -2392,6 +2404,7 @@ const onClick = async (e) => {
     const tag = pickedTag();
     flushManual();
     const p = makePromise(rec.id, tag, 'all', text, '', composeWhen(st) || '');
+    if (st.whenOpt === WHEN_NEXT) p.whenNext = true;
     const proms = loadProms();
     proms.push(p);
     if (!saveProms(proms)) { state.promiseError = '保存できませんでした(ブラウザの設定で保存が禁止されているかもしれません)。'; render(); return; }
@@ -2399,17 +2412,14 @@ const onClick = async (e) => {
     state.promiseError = '';
     state.savedPromise = p;
     state.savedReview = null;
-    /* 見直しの約束(任意)。約束の日から2日後・3日後 */
-    const n = Number(state.reviewOpt);
-    if (n && p.when) {
-      const base = parseDateStr(p.when);
-      if (base) {
-        const day = toDateStr(new Date(base.getFullYear(), base.getMonth(), base.getDate() + n));
-        const rv = makePromise(rec.id, tag, 'all', `見直し(${n}日後): ${text}`, '', p.when.length > 10 ? `${day}${p.when.slice(10)}` : day);
-        rv.kind = 'review';
-        const list = loadProms(); list.push(rv);
-        if (saveProms(list)) state.savedReview = rv;
-      }
+    /* 赤本の解き直しの約束(任意)。「やる」を選んだら、今日から1週間以内の約束を別に1つ入れる */
+    if (state.reviewOpt === 'yes') {
+      const now = new Date();
+      const day = toDateStr(new Date(now.getFullYear(), now.getMonth(), now.getDate() + 7));
+      const rv = makePromise(rec.id, tag, 'all', REDO_TEXT, '', day);
+      rv.kind = 'review';
+      const list = loadProms(); list.push(rv);
+      if (saveProms(list)) state.savedReview = rv;
     }
     render({ focusTop: false });
     const el = document.getElementById('pc'); if (el) el.scrollIntoView({ block: 'center' });
@@ -2535,13 +2545,14 @@ const onClick = async (e) => {
     if (!text) { state.repromiseError = 'やることを入れてください。'; render(); return; }
     if (!old) return;
     const np = makePromise(old.recordId, old.tag, 'all', text, '', composeWhen(st) || '', old.id);
+    if (st.whenOpt === WHEN_NEXT) np.whenNext = true;
     const proms = loadProms().map((x) => (x.id === old.id ? Object.assign({}, x, { status: 'replaced' }) : x));
     proms.push(np);
     saveProms(proms);
     state.repromise = null; state.repromiseError = '';
     showPromises({
       filter: 'todo',
-      msg: np.when ? `約束しました(${fmtWhen(np.when)})。` : '約束しました。日付は、約束のページであとから決められます。'
+      msg: np.when ? `約束しました(${fmtWhen(np.when)})。` : (np.whenNext ? `約束しました(${WHEN_NEXT_LABEL})。` : '約束しました。日付は、約束のページであとから決められます。')
     });
   } else if (act === 'release') {
     if (window.confirm('この約束を手放します。記録には残りますが、未完了の一覧から外れます。よろしいですか?')) {
