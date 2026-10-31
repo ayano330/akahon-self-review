@@ -84,7 +84,7 @@ legend { font-weight: 700; padding: 0; margin-bottom: 8px; }
 .prom-pick { cursor: pointer; }
 .prom-pick.dim { opacity: 0.4; }
 
-input[type="number"], input[type="text"], input[type="date"], input[type="time"], textarea {
+input[type="number"], input[type="text"], input[type="date"], input[type="time"], textarea, select {
   width: 100%;
   font: inherit;
   padding: 10px 12px;
@@ -93,6 +93,7 @@ input[type="number"], input[type="text"], input[type="date"], input[type="time"]
   background: var(--card);
   color: var(--fg);
 }
+.unit-row select { flex: 1; min-width: 0; min-height: 44px; }
 textarea { min-height: 120px; resize: vertical; }
 textarea.short { min-height: 88px; }
 label.field { display: flex; flex-direction: column; gap: 4px; font-weight: 700; }
@@ -639,6 +640,24 @@ function practiceOptions(a) {
   }
   return out;
 }
+/* 単元(docs/materials.md の15単元。冊子の区切りは、単元別・ミニテ・論述で共通) */
+const UNIT_GROUPS = [
+  { label: '冊子1', units: ['細胞と組織', '酵素', '代謝', '植物の反応', '体液'] },
+  { label: '冊子2', units: ['遺伝子の発現', '生態'] },
+  { label: '冊子3', units: ['神経', '恒常性', '生殖', '動物の行動'] },
+  { label: '冊子4', units: ['発生', '遺伝', '進化', '分類'] }
+];
+const MAX_UNITS = 3;
+/* 単元を指定できるのは、ミニテ集(知識不足)と、冊子の教材で練習するとき(理解不足。口頭説明は除く) */
+function unitsApply(tag, a) {
+  return tag === 'knowledge' || (tag === 'understanding' && !!a.practice && a.practice !== 'oral');
+}
+function unitsFor(tag, a) {
+  return unitsApply(tag, a) ? (a.units || []).filter(Boolean) : [];
+}
+const unitPrefix = (tag, a) => { const u = unitsFor(tag, a); return u.length ? u.join('・') + 'の' : ''; };
+/* 約束に教材の名前が入るとき。それは赤本を解く前に済ませることなので、「次の赤本を解いているとき」は出さない */
+const promiseUsesMaterial = (tag, a) => tag === 'knowledge' || (tag === 'understanding' && !!a.practice);
 function optionLabel(list, id) {
   const hit = list.find((o) => o.id === id);
   return hit ? hit.label : '';
@@ -654,7 +673,7 @@ function actionView(tag, a) {
     if (practice) {
       steps[1] = practice === '口頭説明'
         ? 'ノートを閉じて、口に出して説明する'
-        : practice + 'の問題を解く。量は自分で決める';
+        : unitPrefix(tag, a) + practice + 'の問題を解く。量は自分で決める';
     }
   }
   if (tag === 'knowledge') {
@@ -662,6 +681,8 @@ function actionView(tag, a) {
     if (goal) {
       steps[2] = '目標(' + goal + ')に届いたか確かめる';
     }
+    const us = unitsFor(tag, a);
+    if (us.length) steps[1] = '少し時間を空けて、' + us.join('・') + 'のミニテ集のテストを解く。目標に届くまで繰り返す';
   }
   if (tag === 'understanding' && understandingReasons(a).indexOf('how') >= 0 && optionLabel(practiceOptions(a), a.practice) !== '口頭説明') {
     steps[2] = '何も見ずに解く。できなければ解法を見直し、2〜3日後にもう一度解き直す。解き方も説明できるまで繰り返す';
@@ -691,12 +712,12 @@ function promiseText(tag, a) {
     const parts = [];
     if (a.confirm === 'ask') parts.push('先生に質問する');
     else if (confirm) parts.push(confirm + 'で確認する');
-    if (practice) parts.push(practice === '口頭説明' ? '口頭で説明する' : practice + 'の問題を解く');
+    if (practice) parts.push(practice === '口頭説明' ? '口頭で説明する' : unitPrefix(tag, a) + practice + 'の問題を解く');
     return parts.length ? parts.join(' → ') : act.title;
   }
   if (tag === 'knowledge') {
     const phrase = KNOW_GOAL_PHRASE[a.knowGoal];
-    return phrase ? 'ミニテ集で' + phrase + 'まで繰り返す' : act.title;
+    return phrase ? unitPrefix(tag, a) + 'ミニテ集で' + phrase + 'まで繰り返す' : act.title;
   }
   if (needsNextHand(tag)) {
     const next = String(a.next || '').trim();
@@ -761,16 +782,17 @@ function isDue(p) {
   if (p.when.length <= 10) return p.when <= todayStr();
   return p.when <= toLocalIso(new Date());
 }
-function whenOptions() {
+function whenOptions(hideNext) {
   const now = new Date();
   const at = (off) => toDateStr(new Date(now.getFullYear(), now.getMonth(), now.getDate() + off));
-  return [
+  const list = [
     { id: at(0), label: '今日' },
     { id: at(1), label: '明日' },
     { id: at(3), label: '3日以内' },
-    { id: at(7), label: '1週間以内' },
-    { id: WHEN_NEXT, label: '次の赤本を解いているとき' }
+    { id: at(7), label: '1週間以内' }
   ];
+  if (!hideNext) list.push({ id: WHEN_NEXT, label: '次の赤本を解いているとき' });
+  return list;
 }
 /* 選んだ内容から when を作る。未選択・不正のときは null */
 function composeWhen(st) {
@@ -973,6 +995,11 @@ function buildPrompt(a, d, prevProm) {
   L.push('【診断結果(この優先順位は変えないでください)】');
   const roundLabel = (ROUNDS.find((r) => r.id === a.round) || {}).label || '';
   L.push(`- 赤本: ${roundLabel}、全${a.full}問中 ${a.score}問正解(${pct(a.score, a.full)}%)`);
+  const univ = getUniv(state.univId);
+  if (univ && univ.target != null) {
+    const gap = univ.target - pct(a.score, a.full);
+    L.push(`- 目標の正答率: ${univ.target}%(${gap > 0 ? `目標まで、あと${gap}ポイント` : '今回は目標に届きました'})`);
+  }
   L.push(`- 選んだ課題: ${tagLabel(tag)}`);
   if (d.ranked.length > 1) L.push(`- 失点の内訳: ${d.ranked.map((t) => tagLabel(t)).join(' / ')}`);
   L.push(`- 時間配分: ${(TIMES.find((t) => t.id === a.time) || {}).label || ''}`);
@@ -984,6 +1011,8 @@ function buildPrompt(a, d, prevProm) {
     });
   }
   L.push(`- 選んだアクション: ${act.title}`);
+  const unitList = unitsFor(tag, a);
+  if (unitList.length) L.push(`- 取り組む単元: ${unitList.join('・')}`);
   if (a.next.trim()) L.push(`- 次への一手: ${a.next.trim()}`);
   if (a.good.trim()) L.push(`- 今回よかったところ: ${a.good.trim()}`);
   if (prevProm && prevProm.status !== 'open') {
@@ -994,6 +1023,7 @@ function buildPrompt(a, d, prevProm) {
   L.push('');
   L.push('【お願い】');
   L.push('- 上の診断結果と、生徒が選んだアクションを前提に、次の赤本までにやることを一緒に考えてください。');
+  if (univ && univ.target != null && univ.target > pct(a.score, a.full)) L.push('- 目標の正答率との差を埋めるために、何をすればよいかを大事にして考えてください。');
   L.push('- 難しい言葉は避けて、短く、やさしく答えてください。一度に出す提案は1つまでにしてください。');
   L.push('- 最初に、私の理解度を確かめる質問を1〜2個してください。');
   L.push('- 個人情報(名前・学校名など)は聞かないでください。');
@@ -1009,7 +1039,7 @@ const STEPS = ['basic', 'time', 'misses'];
 const newAnswers = () => ({
   round: '', year: '', sched: '', score: '', full: '',
   time: '', misses: [],
-  good: '', next: '', nhPick: '', seen: '', wkind: '', knowGoal: '', confirm: '', practice: ''
+  good: '', next: '', nhPick: '', seen: '', wkind: '', knowGoal: '', confirm: '', practice: '', units: []
 });
 const newMiss = () => ({ label: '', form: '', reason: '', loss: '' });
 const newWhenState = (extra) => Object.assign({ whenOpt: '', date: '', time: '', text: '', base: '', edited: false }, extra);
@@ -1645,6 +1675,26 @@ function tagChoiceHtml(d) {
       ${radios('pick-tag', d.ranked.map((id) => ({ id, label: tagLabel(id) })), tag, 'data-pick="1"', 'col')}
     </fieldset>`;
 }
+/* 単元の指定(任意・3つまで)。タップでリストが開いて選ぶ。同じ単元は2回選べない */
+function unitsHtml(a) {
+  const sel = a.units || [];
+  const rows = sel.map((v, i) => `
+      <div class="row unit-row">
+        <select data-unit="${i}" aria-label="単元${i + 1}">
+          <option value="">単元を選ぶ</option>
+          ${UNIT_GROUPS.map((g) => `<optgroup label="${g.label}">${g.units.map((u) => `<option value="${esc(u)}"${v === u ? ' selected' : ''}${sel.some((x, j) => j !== i && x === u) ? ' disabled' : ''}>${esc(u === '体液' ? '体液(免疫を含む)' : u)}</option>`).join('')}</optgroup>`).join('')}
+        </select>
+        <button type="button" class="icon-btn" data-action="del-unit" data-i="${i}" aria-label="単元${i + 1}を外す">${ICON_TRASH}</button>
+      </div>`).join('');
+  return `
+      <fieldset>
+        <legend>単元(任意・${MAX_UNITS}つまで)</legend>
+        <div class="stack-sm">
+          ${rows}
+          <div class="row row-end"><button type="button" class="btn btn-sm" data-action="add-unit" ${sel.length >= MAX_UNITS ? 'disabled' : ''}>＋ 単元を追加(${sel.length}/${MAX_UNITS})</button></div>
+        </div>
+      </fieldset>`;
+}
 function extraChoiceHtml(tag, a) {
   if (tag === 'understanding') {
     return `
@@ -1655,14 +1705,16 @@ function extraChoiceHtml(tag, a) {
       <fieldset>
         <legend>どの教材で練習しますか?</legend>
         ${radios('practice', practiceOptions(a), a.practice, 'data-ch="practice"', 'col')}
-      </fieldset>`;
+      </fieldset>
+      ${unitsApply(tag, a) ? unitsHtml(a) : ''}`;
   }
   if (tag === 'knowledge') {
     return `
       <fieldset>
         <legend>ミニテ集の目標点は?</legend>
         ${radios('knowGoal', KNOW_GOALS, a.knowGoal, 'data-ch="knowGoal"')}
-      </fieldset>`;
+      </fieldset>
+      ${unitsHtml(a)}`;
   }
   if (tag === 'reasoning') {
     return `
@@ -1711,7 +1763,12 @@ function nextHandFieldsHtml(tag, a) {
 
 /* 「いつやるか」と「やること(書き換え可)」の入力欄。target は state のどの項目を編集するか */
 function whenFieldsHtml(st, target) {
-  const opts = whenOptions();
+  /* 教材を選んだ約束(知識・理解)には、「次の赤本を解いているとき」を出さない。再約束は、元の約束の印を引き継ぐ */
+  const hideNext = target === 'repromise'
+    ? !!((loadProms().find((x) => x.id === st.id) || {}).material)
+    : promiseUsesMaterial(pickedTag(), state.a);
+  if (hideNext && st.whenOpt === WHEN_NEXT) st.whenOpt = '';
+  const opts = whenOptions(hideNext);
   return `
     <fieldset>
       <legend>いつやりますか?</legend>
@@ -2138,7 +2195,7 @@ function showResult() {
   const d = decide(a);
   state.result = { d, prev, prevSame: mine.length > 0, prevProm };
   state.pickedTag = d.primary; state.confettiShown = false;
-  a.seen = ''; a.wkind = ''; a.knowGoal = ''; a.confirm = ''; a.practice = ''; a.good = ''; a.next = ''; a.nhPick = '';
+  a.seen = ''; a.wkind = ''; a.knowGoal = ''; a.confirm = ''; a.practice = ''; a.units = []; a.good = ''; a.next = ''; a.nhPick = '';
   state.reviewOpt = '';
   /* 出し直しのとき、前の結果につくった約束は消す(結果が変わるため) */
   if (state.savedPromise) {
@@ -2405,6 +2462,7 @@ const onClick = async (e) => {
     flushManual();
     const p = makePromise(rec.id, tag, 'all', text, '', composeWhen(st) || '');
     if (st.whenOpt === WHEN_NEXT) p.whenNext = true;
+    if (promiseUsesMaterial(tag, state.a)) p.material = true;
     const proms = loadProms();
     proms.push(p);
     if (!saveProms(proms)) { state.promiseError = '保存できませんでした(ブラウザの設定で保存が禁止されているかもしれません)。'; render(); return; }
@@ -2443,6 +2501,15 @@ const onClick = async (e) => {
   } else if (act === 'toggle-hold') {
     state.holdOpen = !state.holdOpen;
     state.repromise = null; state.repromiseError = '';
+    render();
+  } else if (act === 'add-unit') {
+    if (!state.a.units) state.a.units = [];
+    if (state.a.units.length < MAX_UNITS) state.a.units.push('');
+    render({ focusSelector: `[data-unit="${state.a.units.length - 1}"]` });
+  } else if (act === 'del-unit') {
+    state.a.units.splice(Number(btn.dataset.i), 1);
+    state.promiseError = '';
+    refreshPromiseText();
     render();
   } else if (act === 'toggle-ai') {
     state.showAi = !state.showAi;
@@ -2546,6 +2613,7 @@ const onClick = async (e) => {
     if (!old) return;
     const np = makePromise(old.recordId, old.tag, 'all', text, '', composeWhen(st) || '', old.id);
     if (st.whenOpt === WHEN_NEXT) np.whenNext = true;
+    if (old.material) np.material = true;
     const proms = loadProms().map((x) => (x.id === old.id ? Object.assign({}, x, { status: 'replaced' }) : x));
     proms.push(np);
     saveProms(proms);
@@ -2659,7 +2727,7 @@ app.addEventListener('change', (e) => {
     render({ focusSelector: radioSel(t) });
   } else if (t.matches('[data-pick]')) {
     state.pickedTag = t.value;
-    state.a.seen = ''; state.a.wkind = ''; state.a.knowGoal = ''; state.a.confirm = ''; state.a.practice = '';
+    state.a.seen = ''; state.a.wkind = ''; state.a.knowGoal = ''; state.a.confirm = ''; state.a.practice = ''; state.a.units = [];
     /* ひな形を選んでいたら、別の課題の文が残らないように消す(自分で書いた文は残す) */
     if (state.a.nhPick && state.a.nhPick !== NH_OWN) state.a.next = '';
     state.a.nhPick = '';
@@ -2678,6 +2746,11 @@ app.addEventListener('change', (e) => {
     state.promiseError = '';
     refreshPromiseText();
     render({ focusSelector: t.value === NH_OWN ? '[data-text="next"]' : radioSel(t) });
+  } else if (t.matches('[data-unit]')) {
+    state.a.units[Number(t.dataset.unit)] = t.value;
+    state.promiseError = '';
+    refreshPromiseText();
+    render({ focusSelector: `[data-unit="${t.dataset.unit}"]` });
   } else if (t.matches('[data-ch]')) {
     state.a[t.dataset.ch] = t.value;
     state.promiseError = '';
