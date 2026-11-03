@@ -93,7 +93,10 @@ input[type="number"], input[type="text"], input[type="date"], input[type="time"]
   background: var(--card);
   color: var(--fg);
 }
-.unit-row select { flex: 1; min-width: 0; min-height: 44px; }
+.unit-group-label { font-size: 0.85rem; font-weight: 700; color: var(--muted); margin: 4px 0 -2px; }
+.option:has(input:disabled) span { opacity: 0.4; }
+.option:has(input:disabled) input { cursor: not-allowed; }
+.hint-small { font-size: 0.85rem; color: var(--muted); }
 textarea { min-height: 120px; resize: vertical; }
 textarea.short { min-height: 88px; }
 label.field { display: flex; flex-direction: column; gap: 4px; font-weight: 700; }
@@ -193,7 +196,7 @@ table.data td.act { width: 44px; text-align: right; padding: 2px 4px; }
   background: rgba(255, 213, 79, 0.7); transform: rotate(3deg);
 }
 .scrap {
-  position: relative; padding: 0 16px 2rem 3.4rem; color: #232a4d;
+  position: relative; padding: 0 16px 1rem 3.4rem; color: #232a4d;
   font-family: var(--hand); font-weight: 600; font-size: 1.05rem; line-height: 2rem;
   background-color: #fffbe8;
   background-image:
@@ -206,8 +209,6 @@ table.data td.act { width: 44px; text-align: right; padding: 2px 4px; }
 .scrap-head span { display: inline-block; line-height: 1.5rem; padding: 0 14px; font-size: 1.05rem; color: #c62828; border: 2px solid #c62828; border-radius: 52% 48% 55% 45% / 55% 45% 55% 45%; transform: rotate(-3deg); }
 .scrap-when { font-size: 1.4rem; color: #c62828; text-decoration: underline wavy #c62828; text-underline-offset: 5px; text-decoration-thickness: 1.5px; transform: rotate(-0.6deg); }
 .scrap-body { transform: rotate(0.3deg); }
-.scrap-goal { font-size: 0.95rem; }
-.scrap-goal mark { background: linear-gradient(transparent 55%, #fff176 55%); color: inherit; }
 .stamp { position: absolute; right: 4px; bottom: -14px; width: 112px; height: 112px; transform: rotate(-14deg); mix-blend-mode: multiply; opacity: 0.9; pointer-events: none; }
 .stamp svg, .fight svg { width: 100%; height: 100%; display: block; }
 .stamp.pop { animation: stamp-in 0.55s cubic-bezier(0.2, 1.4, 0.4, 1) both; }
@@ -226,10 +227,10 @@ table.data td.act { width: 44px; text-align: right; padding: 2px 4px; }
 @media (prefers-reduced-motion: reduce) { .stamp.pop, .fight.pop { animation: none; } }
 
 /* 下のタブバー(戻る / ホーム / 約束)。親指で押せる位置 */
-.has-tabbar main { padding-bottom: calc(96px + env(safe-area-inset-bottom)); }
+.has-tabbar main { padding-bottom: calc(112px + env(safe-area-inset-bottom)); }
 #tabbar { position: fixed; left: 0; right: 0; bottom: 0; z-index: 10; background: var(--card); border-top: 1px solid var(--border); padding-bottom: env(safe-area-inset-bottom); }
 .tabbar-in { max-width: 640px; margin: 0 auto; display: flex; }
-.tab { font: inherit; position: relative; flex: 1; min-height: 60px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; border: 0; background: none; color: var(--muted); font-size: 0.72rem; font-weight: 700; cursor: pointer; padding: 6px 4px; }
+.tab { font: inherit; position: relative; flex: 1; min-height: 76px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; border: 0; background: none; color: var(--muted); font-size: 0.72rem; font-weight: 700; cursor: pointer; padding: 6px 4px; }
 .tab span { text-align: center; line-height: 1.15; max-width: 8.5em; }
 .tab span.nowrap { white-space: nowrap; max-width: none; font-size: 0.68rem; letter-spacing: -0.01em; }
 .tab svg { width: 24px; height: 24px; }
@@ -253,12 +254,11 @@ table.data td.act { width: 44px; text-align: right; padding: 2px 4px; }
 
 /* 上のヘッダー(タイトル画像 + ハンバーガー) */
 #app-header { position: sticky; top: 0; z-index: 20; background: var(--card); border-bottom: 1px solid var(--border); }
-.app-header-in { position: relative; max-width: 640px; margin: 0 auto; display: grid; grid-template-columns: 44px 1fr 44px; align-items: center; gap: 8px; padding: 8px 12px; min-height: 56px; }
-.app-title-btn { display: flex; align-items: center; justify-content: center; justify-self: center; min-height: 44px; padding: 0; border: 0; background: none; cursor: pointer; max-width: 100%; }
-.app-title-btn:disabled { cursor: default; }
-.app-title-img { height: 40px; width: auto; max-width: min(240px, calc(100vw - 140px)); display: block; object-fit: contain; object-position: center; }
+.app-header-in { position: relative; isolation: isolate; max-width: 640px; margin: 0 auto; display: grid; grid-template-columns: 44px 1fr 44px; align-items: center; gap: 8px; padding: 8px 12px; height: 76px; }
+.app-header-in::before { content: ''; position: absolute; inset: 0; z-index: -1; background: url(akahon-header-bg.jpg) center bottom / cover no-repeat; }
+@media (min-width: 641px) { .app-header-in::before { -webkit-mask-image: linear-gradient(to right, transparent, #000 10%, #000 90%, transparent); mask-image: linear-gradient(to right, transparent, #000 10%, #000 90%, transparent); } }
 .header-slot { width: 44px; height: 44px; }
-.header-back { border: 0; background: none; color: var(--fg); }
+.header-back { border: 0; background: rgba(255, 254, 251, 0.9); border-radius: 50%; color: var(--fg); }
 .header-back:hover { border: 0; color: var(--primary); }
 .manual-item { display: flex; gap: 8px; align-items: flex-start; border: 1px solid var(--border); border-radius: var(--radius); padding: 12px; background: var(--card); }
 .manual-item p { flex: 1; min-width: 0; }
@@ -282,10 +282,11 @@ h2::before { content: ''; width: 6px; height: 1.1em; border-radius: 3px; backgro
 .tab.on { background: var(--primary-soft); color: var(--primary); }
 /* 下に引っ張って更新(ホーム画面に追加して開いたとき) */
 body { overscroll-behavior-y: contain; }
-#ptr { position: fixed; top: 56px; left: 50%; z-index: 30; width: 40px; height: 40px; border-radius: 50%; background: var(--card); box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2); display: flex; align-items: center; justify-content: center; pointer-events: none; opacity: 0; transform: translate(-50%, -44px); transition: transform 0.2s, opacity 0.2s; }
+#ptr { position: fixed; top: 76px; left: 50%; z-index: 30; width: 40px; height: 40px; border-radius: 50%; background: var(--card); box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2); display: flex; align-items: center; justify-content: center; pointer-events: none; opacity: 0; transform: translate(-50%, -44px); transition: transform 0.2s, opacity 0.2s; }
 .ptr-spin { width: 20px; height: 20px; border: 3px solid var(--border); border-top-color: var(--primary); border-radius: 50%; }
 #ptr.spin .ptr-spin { animation: ptr-rot 0.7s linear infinite; }
 @keyframes ptr-rot { to { transform: rotate(360deg); } }
+.a2hs p { margin-bottom: 8px; font-weight: 700; }
 /* 先生のひとこと(ホーム) */
 .teacher { display: flex; align-items: flex-end; gap: 6px; }
 .teacher-img { width: 112px; height: 112px; flex: none; object-fit: contain; }
@@ -325,6 +326,7 @@ const KEY_PROMISES = 'akahon-self-review:v3:promises';
 const KEY_WELCOME = 'akahon-self-review:v3:welcomed';
 const KEY_SCHEDNAMES = 'akahon-self-review:v3:schednames';
 const KEY_MANUAL = 'akahon-self-review:v3:manual';
+const KEY_A2HS = 'akahon-self-review:v3:a2hs';
 /* v1・v2 の保存データ、削除した用語カードのデータ(v3 は読み込まない。「全部消す」のときだけ消す) */
 const KEY_OLD = 'akahon-self-review:v1';
 const KEY_CARDS = 'akahon-self-review:cards:v1';
@@ -407,15 +409,25 @@ const PRACTICE_BY_REASON = {
     { id: 'oral', label: '口頭説明' }
   ],
   what: [
+    { id: 'minite', label: 'ミニテ集' },
     { id: 'essay', label: '論述問題集' },
     { id: 'oral', label: '口頭説明' }
   ],
   how: [
+    { id: 'minite', label: 'ミニテ集' },
     { id: 'exprint', label: '授業で扱った演習教材' },
-    { id: 'tangen_done', label: '単元別問題集の既習問題' },
+    { id: 'tangen_done', label: '単元別問題集' },
     { id: 'oral', label: '口頭説明' }
   ]
 };
+/* 知識不足の練習教材(確認資料は理解不足と同じ CONFIRM_OPTS)。単元別は、解く★を選ぶ */
+const KNOW_PRACTICE = [
+  { id: 'minite', label: 'ミニテ集' },
+  { id: 'tangen', label: '単元別問題集' }
+];
+const STAR_OPTS = ['1', '2', '3', '4', '5'];
+const STAR_HINT = '★4・★5は、★3までが完璧になった人だけ選んでください';
+const starsLabel = (a) => (a.stars || []).slice().sort().map((s) => '★' + s).join('・');
 const KNOW_GOALS = [
   { id: '80', label: '8割以上' },
   { id: '90', label: '9割以上' },
@@ -482,70 +494,70 @@ const ACTIONS = {
     short: '確認したあと、問題を解くか口頭で説明して確かめる',
     why: '内容を確認したあと、自分で説明したり問題を解いたりして確かめるため。',
     steps: ['授業ノート、または授業動画・e-stepで、間違えた内容に関係する部分を確認する', '提示された教材の問題を解くか、口に出して説明する', '問題演習なら正解して解き方も説明できるか、口頭説明なら何も見ずに最後まで説明できるか確かめる。説明できなければ、どこがわからないかをはっきりさせて先生に質問する'],
-    amount: '問題演習の量は自分で決める', goal: '選んだ問題を正解し、解き方も説明できた。または、資料を見ずに最後まで口頭説明できた'
+    goal: '選んだ問題を正解し、解き方も説明できた。または、資料を見ずに最後まで口頭説明できた'
   },
   knowledge: {
     title: '覚えていなかった知識を確認し、ミニテストで目標点を取ろう',
     short: '知識を確認したあと、時間を空けてミニテ集で確かめる',
     why: '見直した知識を、時間がたっても自分で答えられるか確かめるため。',
     steps: ['授業ノート、または授業動画・e-stepで知識を確認する', '少し時間を空けて、ミニテ集の該当テストを解く。目標に届くまで繰り返す', '自分が選んだ目標点に届いたか確かめる'],
-    amount: 'ミニテ集1回 約15分', goal: '自分で宣言した目標点を達成できた'
+    goal: '自分で宣言した目標点を達成できた'
   },
   reasoning: {
     title: '考察問題を振り返り、次に同じような問題が出たときの解き方を決めよう',
     short: '解説を確認し、次の解き方を1文で決める',
     why: '今回の答えを確認するだけでなく、次に似た問題を解くときに使える方法を見つけるため。',
     steps: ['授業で扱ったことがある問題なら、その教材に戻る。初見なら赤本の解説を読む', 'なぜその解答になるのか、自分で説明できるようにする', '次に似た問題が出たとき、どこに注目し、どのように読み、どんな順番で考えるかを決める'],
-    amount: '次への一手を1つ', goal: '解答の理由を説明でき、次に使う具体的な解き方を1文で入力できた'
+    goal: '解答の理由を説明でき、次に使う具体的な解き方を1文で入力できた'
   },
   writing: {
     title: '論述で足りなかった要素を確認し、次に書けるようにしよう',
     short: '既習なら解き直し、初見なら答案と模範解答を比べる',
     why: '以前解いた問題なら解き直し、初見なら模範解答との比較で不足した要素を確認するため。',
     steps: ['知識系か考察系かに合わせて、書くべき内容を確認する', 'あるなら該当する教材の問題を解き直す。ないなら自分の答案と模範解答を比べて足りなかった要素を確認する', '解答に必要なキーワードと専門用語に線を引き、「この論述で何を書く必要があるか」をノートに書き溜める'],
-    amount: '', goal: '足りなかった要素を挙げられる'
+    goal: '足りなかった要素を挙げられる'
   },
   writingJapanese: {
     title: '書いた文章を読み直して、日本語のおかしいところを自分で見つけよう',
     short: '声に出して読み直し、主語と述語・原因と結果を確認する',
     why: '自分の文章の何がおかしいのかを自分で理解することが、同じミスを減らす第一歩になるため。',
     steps: ['書き終わったら、頭の中で読み上げるか声に出して読み、違和感のある部分を探す', '主語と述語に線を引いて、対応しているか確認する。「〜ので」「〜から」は、原因と結果に線を引いて、つながりを確認する', '長い一文は、短く区切る'],
-    amount: '', goal: '自分の文章のおかしいところを見つけて、直せた'
+    goal: '自分の文章のおかしいところを見つけて、直せた'
   },
   writingLength: {
     title: '論述を書く前に、必要な要素と説明の流れをメモしよう',
     short: '箇条書きとフローチャートを作ってから書き始める',
     why: '説明の流れをつなぐために必要な内容が、論述の加点ポイントになるから。',
     steps: ['解答に入れるべき要素を箇条書きにする', '要素同士のつながりを、矢印などを使った簡単なフローチャートにする', '必要な要素と説明の流れを確認してから答案を書き始める'],
-    amount: '', goal: '必要な要素の箇条書きとフローチャートを作り、それを確認して答案を書けた'
+    goal: '必要な要素の箇条書きとフローチャートを作り、それを確認して答案を書けた'
   },
   calc: {
     title: '計算ミスの原因を見つけ、次に同じミスをしない方法を決めよう',
     short: '解き直して対策を決め、似た問題で実行する',
     why: '同じミスを防ぐ方法を考え、別の問題でも使えるか確かめるため。',
     steps: ['赤本でどこを間違えたか確認し、同じ問題を解き直す', '次に同じミスを防ぐための具体的な対策を1つ決める', '今までの教材から似た計算問題を選び、その対策を使って解く'],
-    amount: '', goal: '対策を1文で入力し、似た問題で実行できた'
+    goal: '対策を1文で入力し、似た問題で実行できた'
   },
   careless: {
     title: '読み間違えた原因を見つけ、次に同じミスをしない方法を決めよう',
     short: '読み違いを確認し、次の対策を1文で決める',
     why: '次の赤本で同じミスを繰り返さないため。',
     steps: ['赤本の問題を見直し、どこを読み間違えたか確認する', '次に同じミスを防ぐための具体的な行動を1つ決める'],
-    amount: '対策を1つ', goal: '次の問題で実行する対策を1文で入力できた'
+    goal: '次の問題で実行する対策を1文で入力できた'
   },
   timeshort: {
     title: '時間が足りなかった原因を見つけ、次の赤本で変える行動を決めよう',
     short: '時間を使いすぎた場面を確認し、次に変える行動を1文で決める',
     why: '時間を使いすぎた場面を確認し、次の赤本で同じことを繰り返さないため。',
     steps: ['赤本を振り返り、どの問題で時間を使いすぎたか確認する', '時間が足りなくなった原因を考える', '次の赤本で変える具体的な行動を1つ決める'],
-    amount: '対策を1つ', goal: '時間不足の原因を挙げ、対策を1文で入力できた'
+    goal: '時間不足の原因を挙げ、対策を1文で入力できた'
   },
   stable: {
     title: '今回うまくいったことを1つ見つけよう',
     short: 'うまくいった行動を1文で残す',
     why: 'うまくいった行動を振り返り、次の赤本でも活かせるようにするため。',
     steps: ['今回の赤本で、うまくいった行動を1つ思い出す', 'その行動を次の赤本でも続けるか考える'],
-    amount: '振り返る行動を1つ', goal: 'うまくいった行動を1文で入力できた'
+    goal: 'うまくいった行動を1文で入力できた'
   }
 };
 
@@ -610,7 +622,7 @@ const actionOf = (tag, a) => {
     if (k === 'length') return ACTIONS.writingLength;
     if (k === 'japanese') return ACTIONS.writingJapanese;
   }
-  return ACTIONS[tag] || { title: '', short: '', why: '', steps: [], amount: '', goal: '' };
+  return ACTIONS[tag] || { title: '', short: '', why: '', steps: [], goal: '' };
 };
 const findForm = (id) => FORMS.find((f) => f.id === id);
 const findReason = (formId, reasonId) => {
@@ -676,16 +688,24 @@ function practiceOptions(a) {
 }
 /* 単元(docs/materials.md の15単元。冊子の区切りは、単元別・ミニテ・論述で共通) */
 const UNIT_GROUPS = [
-  { label: '冊子1', units: ['細胞と組織', '酵素', '代謝', '植物の反応', '体液'] },
-  { label: '冊子2', units: ['遺伝子の発現', '生態'] },
-  { label: '冊子3', units: ['神経', '恒常性', '生殖', '動物の行動'] },
-  { label: '冊子4', units: ['発生', '遺伝', '進化', '分類'] }
+  { units: ['細胞と組織', '酵素', '代謝', '植物の反応', '体液'] },
+  { units: ['遺伝子の発現', '生態'] },
+  { units: ['神経', '恒常性', '生殖', '動物の行動'] },
+  { units: ['発生', '遺伝', '進化', '分類'] }
 ];
 const MAX_UNITS = 3;
-/* 単元を指定できるのは、ミニテ集(知識不足)と、冊子の教材で練習するとき(理解不足。口頭説明は除く) */
+/* 単元を指定できるのは、教材を選んだあと(知識不足・理解不足。口頭説明は除く) */
 function unitsApply(tag, a) {
-  return tag === 'knowledge' || (tag === 'understanding' && !!a.practice && a.practice !== 'oral');
+  return (tag === 'knowledge' || tag === 'understanding') && !!a.practice && a.practice !== 'oral';
 }
+/* 単元の見出し。ミニテ集は「ミニテ集1〜4」、単元別問題集は「単元別1〜4」。それ以外の教材は見出しなしで15単元を並べる */
+function unitHeading(a, i) {
+  if (a.practice === 'minite') return 'ミニテ集' + (i + 1);
+  if (a.practice === 'tangen' || a.practice === 'tangen13' || a.practice === 'tangen_done') return '単元別' + (i + 1);
+  return '';
+}
+/* ミニテ集を選んだとき(知識不足・理解不足)は、目標点も聞く */
+const usesMinite = (tag, a) => (tag === 'knowledge' || tag === 'understanding') && a.practice === 'minite';
 function unitsFor(tag, a) {
   return unitsApply(tag, a) ? (a.units || []).filter(Boolean) : [];
 }
@@ -699,6 +719,7 @@ function optionLabel(list, id) {
 function actionView(tag, a) {
   const act = actionOf(tag, a);
   const steps = act.steps.slice();
+  let title = act.title;
   if (tag === 'understanding') {
     const confirm = optionLabel(CONFIRM_OPTS, a.confirm);
     const practice = optionLabel(practiceOptions(a), a.practice);
@@ -709,16 +730,28 @@ function actionView(tag, a) {
         ? 'ノートを閉じて、口に出して説明する'
         : unitPrefix(tag, a) + practice + 'の問題を解く。量は自分で決める';
     }
+    /* ミニテ集は、目標点まで繰り返す */
+    if (a.practice === 'minite' && optionLabel(KNOW_GOALS, a.knowGoal)) {
+      steps[1] = unitPrefix(tag, a) + 'ミニテ集のテストを解く。目標に届くまで繰り返す';
+      steps[2] = '目標(' + optionLabel(KNOW_GOALS, a.knowGoal) + ')に届いたか確かめる。解き方を説明できなければ、どこがわからないかをはっきりさせて先生に質問する';
+    }
   }
   if (tag === 'knowledge') {
-    const goal = optionLabel(KNOW_GOALS, a.knowGoal);
-    if (goal) {
-      steps[2] = '目標(' + goal + ')に届いたか確かめる';
+    const confirm = optionLabel(CONFIRM_OPTS, a.confirm);
+    if (a.confirm === 'ask') steps[0] = '先生に質問して、知識を確認する';
+    else if (confirm) steps[0] = confirm + 'で知識を確認する' + (a.confirm === 'video' ? '(関係する部分だけ)' : '');
+    const upre = unitPrefix(tag, a);
+    if (a.practice === 'minite') {
+      const goal = optionLabel(KNOW_GOALS, a.knowGoal);
+      steps[1] = '少し時間を空けて、' + upre + 'ミニテ集のテストを解く。目標に届くまで繰り返す';
+      if (goal) steps[2] = '目標(' + goal + ')に届いたか確かめる';
+    } else if (a.practice === 'tangen') {
+      title = '覚えていなかった知識を確認し、単元別問題集で確かめよう';
+      steps[1] = '少し時間を空けて、' + upre + '単元別問題集の' + (starsLabel(a) || '★') + 'を解く';
+      steps[2] = '解いた問題を正解できたか確かめる';
     }
-    const us = unitsFor(tag, a);
-    if (us.length) steps[1] = '少し時間を空けて、' + us.join('・') + 'のミニテ集のテストを解く。目標に届くまで繰り返す';
   }
-  if (tag === 'understanding' && understandingReasons(a).indexOf('how') >= 0 && optionLabel(practiceOptions(a), a.practice) !== '口頭説明') {
+  if (tag === 'understanding' && a.practice !== 'minite' && understandingReasons(a).indexOf('how') >= 0 && optionLabel(practiceOptions(a), a.practice) !== '口頭説明') {
     steps[2] = '何も見ずに解く。できなければ解法を見直し、2〜3日後にもう一度解き直す。解き方も説明できるまで繰り返す';
   }
   if (tag === 'reasoning') {
@@ -731,9 +764,10 @@ function actionView(tag, a) {
     if (a.seen === 'no') steps[1] = '自分の答案と模範解答を比べて、足りなかった要素を確認する';
   }
   return {
-    title: act.title, short: act.short, why: act.why, steps,
-    amount: act.amount,
-    goal: (tag === 'knowledge' && a.knowGoal) ? ('目標(' + optionLabel(KNOW_GOALS, a.knowGoal) + ')を達成できた') : act.goal
+    title, short: act.short, why: act.why, steps,
+    goal: usesMinite(tag, a) && a.knowGoal ? ('目標(' + optionLabel(KNOW_GOALS, a.knowGoal) + ')を達成できた')
+      : (tag === 'knowledge' && a.practice === 'tangen' && (a.stars || []).length) ? ('選んだ' + starsLabel(a) + 'の問題を正解できた')
+      : act.goal
   };
 }
 /* 約束の「やること」に最初から入れる文。生徒が選んだ教材・目標、または入力した次への一手を、そのまま使う。
@@ -746,12 +780,19 @@ function promiseText(tag, a) {
     const parts = [];
     if (a.confirm === 'ask') parts.push('先生に質問する');
     else if (confirm) parts.push(confirm + 'で確認する');
-    if (practice) parts.push(practice === '口頭説明' ? '口頭で説明する' : unitPrefix(tag, a) + practice + 'の問題を解く');
+    if (a.practice === 'minite' && KNOW_GOAL_PHRASE[a.knowGoal]) parts.push(unitPrefix(tag, a) + 'ミニテ集で' + KNOW_GOAL_PHRASE[a.knowGoal] + 'まで繰り返す');
+    else if (practice) parts.push(practice === '口頭説明' ? '口頭で説明する' : unitPrefix(tag, a) + practice + 'の問題を解く');
     return parts.length ? parts.join(' → ') : act.title;
   }
   if (tag === 'knowledge') {
+    const confirm = optionLabel(CONFIRM_OPTS, a.confirm);
+    const parts = [];
+    if (a.confirm === 'ask') parts.push('先生に質問する');
+    else if (confirm) parts.push(confirm + 'で確認する');
     const phrase = KNOW_GOAL_PHRASE[a.knowGoal];
-    return phrase ? unitPrefix(tag, a) + 'ミニテ集で' + phrase + 'まで繰り返す' : act.title;
+    if (a.practice === 'minite' && phrase) parts.push(unitPrefix(tag, a) + 'ミニテ集で' + phrase + 'まで繰り返す');
+    else if (a.practice === 'tangen' && (a.stars || []).length) parts.push(unitPrefix(tag, a) + '単元別問題集の' + starsLabel(a) + 'を解く');
+    return parts.length ? parts.join(' → ') : act.title;
   }
   if (needsNextHand(tag)) {
     const next = String(a.next || '').trim();
@@ -933,6 +974,11 @@ function flushManual() {
   state.manualFlushed = { good, next };
 }
 
+/* ホーム画面に追加して開いているか。追加すると、ブラウザが記録を消しにくくなる */
+const isStandalone = () => { try { return window.matchMedia('(display-mode: standalone)').matches || navigator.standalone === true; } catch (e) { return false; } };
+const a2hsDismissed = () => { try { return localStorage.getItem(KEY_A2HS) === '1'; } catch (e) { return true; } };
+/* 記録を消されにくくするお願いをブラウザに出す(許可されなくても困らない。生徒には何も見えない) */
+function askPersist() { try { if (navigator.storage && navigator.storage.persist) navigator.storage.persist(); } catch (e) { /* noop */ } }
 const isWelcomed = () => { try { return localStorage.getItem(KEY_WELCOME) === '1'; } catch (e) { return true; } };
 const markWelcomed = () => { try { localStorage.setItem(KEY_WELCOME, '1'); } catch (e) { /* noop */ } };
 
@@ -1049,12 +1095,16 @@ function buildPrompt(a, d, prevProm) {
   if (tag === 'understanding') {
     const conf = optionLabel(CONFIRM_OPTS, a.confirm);
     const prac = optionLabel(practiceOptions(a), a.practice);
+    const goalLabel = optionLabel(KNOW_GOALS, a.knowGoal);
     if (conf) L.push(`- 確認に使う資料: ${conf}`);
-    if (prac) L.push(`- 練習に使う教材: ${prac}`);
+    if (prac) L.push(`- 練習に使う教材: ${prac}${a.practice === 'minite' && goalLabel ? `(目標: ${goalLabel})` : ''}`);
   }
   if (tag === 'knowledge') {
+    const conf = optionLabel(CONFIRM_OPTS, a.confirm);
     const goalLabel = optionLabel(KNOW_GOALS, a.knowGoal);
-    L.push(`- 練習に使う教材: ミニテ集${goalLabel ? `(目標: ${goalLabel})` : ''}`);
+    if (conf) L.push(`- 確認に使う資料: ${conf}`);
+    if (a.practice === 'minite') L.push(`- 練習に使う教材: ミニテ集${goalLabel ? `(目標: ${goalLabel})` : ''}`);
+    else if (a.practice === 'tangen') L.push(`- 練習に使う教材: 単元別問題集${starsLabel(a) ? `(${starsLabel(a)})` : ''}`);
   }
   const unitList = unitsFor(tag, a);
   if (unitList.length) L.push(`- 取り組む単元: ${unitList.join('・')}`);
@@ -1084,7 +1134,7 @@ const STEPS = ['basic', 'time', 'misses'];
 const newAnswers = () => ({
   round: '', year: '', sched: '', score: '', full: '',
   time: '', misses: [],
-  good: '', next: '', nhPick: '', seen: '', wkind: '', knowGoal: '', confirm: '', practice: '', units: []
+  good: '', next: '', nhPick: '', seen: '', wkind: '', knowGoal: '', confirm: '', practice: '', units: [], stars: []
 });
 const newMiss = () => ({ label: '', form: '', reason: '', loss: '' });
 const newWhenState = (extra) => Object.assign({ whenOpt: '', date: '', time: '', text: '', base: '', edited: false }, extra);
@@ -1264,14 +1314,11 @@ const ICON_X = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strok
    先生を足すときは、ここに { name, img, says:[…] } を1行足す(画像は teachers/ に置く)。
    says が空の先生は出さない。 */
 const TEACHERS = [
-  { name: '高瀬先生', img: 'teachers/takase.png', says: [
-    '人事を尽くして天命を待つ！',
-    '見えている落とし穴にはまる人いない。常にアンテナを張って解こう！',
-  ] },
   { name: '増岡先生', img: 'teachers/masuoka.png', says: [
     '昨日できなかった問題を，今日できるようにしよう。積み重ねしか勝たん！',
-    '次に繋げれば，それは失敗じゃなくて経験。',
+    '次に繋げれば，それは失敗じゃなくて経験。たくさん演習，たくさん経験！',
   ] },
+  /* 増田先生(人事を尽くして天命を待つ！ / MMノートで弱点克服！)は、画像が増岡先生と同じファイルだったので、顔の画像が届くまで入れていない */
 ];
 let lastTeacherName = '';
 function pickTeacher() {
@@ -1372,7 +1419,6 @@ const FIGHT_SVG = `<svg viewBox="0 0 180 96" role="img" aria-label="もう少し
   </g>
 </svg>`;
 function scrapHtml(p, opts) {
-  const act = actionOf(p.tag, state.a);
   const done = p.status === 'done';
   const partial = p.status === 'partial';
   const pop = opts && opts.animate ? ' pop' : '';
@@ -1382,7 +1428,6 @@ function scrapHtml(p, opts) {
         <p class="scrap-head"><span>やくそく</span></p>
         <p class="scrap-when">${esc(whenLabel(p))}</p>
         <p class="scrap-body">${esc(p.text)}</p>
-        ${(act && act.goal && !(opts && opts.noGoal)) ? `<p class="scrap-goal">めじるし: <mark>${esc(act.goal)}</mark></p>` : ''}
       </div>
       ${done ? `<div class="stamp${pop}">${STAMP_SVG}</div>` : ''}
       ${partial ? `<div class="fight${pop}">${FIGHT_SVG}</div>` : ''}
@@ -1397,7 +1442,7 @@ function followupHtml(p, n, total, recs, univs) {
     <section class="card card-accent stack" aria-labelledby="fu">
       <div class="row-between"><h2 id="fu">約束、達成できましたか?</h2>${total > 1 ? `<span class="muted">${n} / ${total}件</span>` : ''}</div>
       <p class="muted">${esc(rec ? recLabel(rec, univs) : '')} の赤本</p>
-      ${scrapHtml(p, { noGoal: true })}
+      ${scrapHtml(p)}
       ${!p.when && !p.whenNext ? `
       <div class="row">
         <label class="field" style="flex:1;min-width:10em"><span>日付を決めておく(任意)</span>
@@ -1525,6 +1570,14 @@ function renderIntro() {
           </div>`;
         }).join('')}</div>` : '<p class="notice">登録された大学はありません</p>'}
       </section>
+      ${(isStandalone() || a2hsDismissed()) ? '' : `
+      <section class="notice a2hs" aria-label="ホーム画面への追加">
+        <p>記録を守るため、ホーム画面にWebアプリとして追加して使うことをおすすめします。</p>
+        <div class="row">
+          <button class="btn btn-sm" data-action="open-about">やり方を見る</button>
+          <button class="btn btn-quiet btn-sm" data-action="close-a2hs">今は表示しない</button>
+        </div>
+      </section>`}
     </div>`;
 }
 
@@ -1535,11 +1588,23 @@ const SAFETY_POINTS = [
   '普段 AI を使っている人は、診断結果をコピーして AI に相談してみるのも良いでしょう。おまけの機能です。'
 ];
 const safetyList = () => `<ul class="plain">${SAFETY_POINTS.map((s) => `<li>${esc(s)}</li>`).join('')}</ul>`;
+const INSTALL_NOTES = [
+  'スマホの空き容量が少ないときや、長いあいだ開いていないときに、保存した記録が消えてしまうことがあります。',
+  '記録はこの端末の中にだけあるので、機種変更や、ブラウザのデータ消去でも消えます。',
+  'データを守るため、ホーム画面に「Webアプリ」として追加して使うことをおすすめします。ときどき開くと、さらに消えにくくなります。'
+];
+const INSTALL_STEPS = [
+  'iPhone: Safari で開いて、画面下の共有ボタン(四角から上向きの矢印)をおし、「ホーム画面に追加」をえらぶ。',
+  'Android: Chrome の右上のメニュー(縦の3つの点)をおし、「ホーム画面に追加」または「アプリをインストール」をえらぶ。'
+];
+const installHtml = () => `<ul class="plain">${INSTALL_NOTES.map((s) => `<li>${esc(s)}</li>`).join('')}</ul><p><strong>追加のしかた</strong></p><ul class="plain">${INSTALL_STEPS.map((s) => `<li>${esc(s)}</li>`).join('')}</ul>`;
 function renderWelcome() {
   return `
     <div class="stack">
       <h1 tabindex="-1">安心して使えるように</h1>
       ${safetyList()}
+      <h2>記録が消えることがあります</h2>
+      ${installHtml()}
       <div><button class="btn btn-primary" data-action="welcome-ok">承諾して利用する</button></div>
     </div>`;
 }
@@ -1551,6 +1616,8 @@ function renderAbout() {
       <p>赤本セルフチェック(生物)は、解いた赤本を振り返って、次の行動を決めるためのツールです。</p>
       <h2>安心して使えるように</h2>
       ${safetyList()}
+      <h2>記録が消えることがあります</h2>
+      ${installHtml()}
       <p class="muted">この提案は目安です。迷ったときは、先生に相談してください。</p>
     </div>`;
 }
@@ -1747,7 +1814,7 @@ function actionHtml(tag, a) {
       </div>
       <p>${esc(act.why)}</p>
       <ol class="steps">${act.steps.map((s) => `<li>${esc(s)}</li>`).join('')}</ol>
-      <p class="goal"><strong>終わりの目印:</strong> ${esc(act.goal)}</p>
+      <p class="goal"><strong>🚩ゴール:</strong> ${esc(act.goal)}</p>
     </div>`;
 }
 function tagChoiceHtml(d) {
@@ -1759,26 +1826,45 @@ function tagChoiceHtml(d) {
       ${radios('pick-tag', d.ranked.map((id) => ({ id, label: tagLabel(id) })), tag, 'data-pick="1"', 'col')}
     </fieldset>`;
 }
-/* 単元の指定(任意・3つまで)。タップでリストが開いて選ぶ。同じ単元は2回選べない */
+/* 複数選べるボタン(他の選択肢と同じ見た目)。上限に達したら、選んでいないものを押せなくする */
+function checks(name, items, attrs) {
+  return '<div class="options">' + items.map((it) => (
+    `<label class="option"><input type="checkbox" name="${name}" value="${esc(it.id)}" ${attrs} ${it.checked ? 'checked' : ''} ${it.disabled ? 'disabled' : ''}><span>${esc(it.label)}</span></label>`
+  )).join('') + '</div>';
+}
+/* 単元の指定(任意・3つまで)。見出し(ミニテ集1〜4 / 単元別1〜4)ごとに、タップで選ぶ・もう一度タップで外す */
 function unitsHtml(a) {
-  const sel = a.units || [];
-  const rows = sel.map((v, i) => `
-      <div class="row unit-row">
-        <select data-unit="${i}" aria-label="単元${i + 1}">
-          <option value="">単元を選ぶ</option>
-          ${UNIT_GROUPS.map((g) => `<optgroup label="${g.label}">${g.units.map((u) => `<option value="${esc(u)}"${v === u ? ' selected' : ''}${sel.some((x, j) => j !== i && x === u) ? ' disabled' : ''}>${esc(u === '体液' ? '体液(免疫を含む)' : u)}</option>`).join('')}</optgroup>`).join('')}
-        </select>
-        <button type="button" class="icon-btn" data-action="del-unit" data-i="${i}" aria-label="単元${i + 1}を外す">${ICON_TRASH}</button>
-      </div>`).join('');
+  const sel = (a.units || []).filter(Boolean);
+  const full = sel.length >= MAX_UNITS;
+  const groups = UNIT_GROUPS.map((g, i) => {
+    const head = unitHeading(a, i);
+    const items = g.units.map((u) => {
+      const on = sel.indexOf(u) >= 0;
+      return { id: u, label: u === '体液' ? '体液(免疫を含む)' : u, checked: on, disabled: full && !on };
+    });
+    return `${head ? `<p class="unit-group-label">${esc(head)}</p>` : ''}${checks('unit', items, 'data-unit="1"')}`;
+  }).join('');
   return `
       <fieldset>
         <legend>単元(任意・${MAX_UNITS}つまで)</legend>
-        <div class="stack-sm">
-          ${rows}
-          <div class="row row-end"><button type="button" class="btn btn-sm" data-action="add-unit" ${sel.length >= MAX_UNITS ? 'disabled' : ''}>＋ 単元を追加(${sel.length}/${MAX_UNITS})</button></div>
-        </div>
+        <div class="stack-sm">${groups}</div>
       </fieldset>`;
 }
+/* 知識不足の単元別問題集: 解く★(複数選べる) */
+function starsHtml(a) {
+  const sel = a.stars || [];
+  return `
+      <fieldset>
+        <legend>どの★を解きますか?</legend>
+        <p class="hint-small">${esc(STAR_HINT)}</p>
+        ${checks('star', STAR_OPTS.map((s) => ({ id: s, label: '★' + s, checked: sel.indexOf(s) >= 0 })), 'data-star="1"')}
+      </fieldset>`;
+}
+const goalFieldsetHtml = (a) => `
+      <fieldset>
+        <legend>ミニテ集の目標点は?</legend>
+        ${radios('knowGoal', KNOW_GOALS, a.knowGoal, 'data-ch="knowGoal"')}
+      </fieldset>`;
 function extraChoiceHtml(tag, a) {
   if (tag === 'understanding') {
     return `
@@ -1790,15 +1876,22 @@ function extraChoiceHtml(tag, a) {
         <legend>どの教材で練習しますか?</legend>
         ${radios('practice', practiceOptions(a), a.practice, 'data-ch="practice"', 'col')}
       </fieldset>
+      ${usesMinite(tag, a) ? goalFieldsetHtml(a) : ''}
       ${unitsApply(tag, a) ? unitsHtml(a) : ''}`;
   }
   if (tag === 'knowledge') {
     return `
       <fieldset>
-        <legend>ミニテ集の目標点は?</legend>
-        ${radios('knowGoal', KNOW_GOALS, a.knowGoal, 'data-ch="knowGoal"')}
+        <legend>何で確認しますか?</legend>
+        ${radios('confirm', CONFIRM_OPTS, a.confirm, 'data-ch="confirm"', 'col')}
       </fieldset>
-      ${unitsHtml(a)}`;
+      <fieldset>
+        <legend>どの教材で練習しますか?</legend>
+        ${radios('practice', KNOW_PRACTICE, a.practice, 'data-ch="practice"', 'col')}
+      </fieldset>
+      ${usesMinite(tag, a) ? goalFieldsetHtml(a) : ''}
+      ${a.practice === 'tangen' ? starsHtml(a) : ''}
+      ${unitsApply(tag, a) ? unitsHtml(a) : ''}`;
   }
   if (tag === 'reasoning') {
     return `
@@ -2101,9 +2194,7 @@ function renderHeader() {
   const hasData = loadUnivs().length || loadRecs().length || loadProms().length || man.goods.length || man.nexts.length;
   el.innerHTML = `<div class="app-header-in">
     ${onHome ? '<span class="header-slot" aria-hidden="true"></span>' : `<button class="icon-btn header-back" data-action="nav-back" aria-label="戻る">${ICON_BACK}</button>`}
-    <button class="app-title-btn" data-action="home" ${onHome ? 'disabled' : ''} aria-label="赤本セルフチェック">
-      <img src="akahon-title-header.png" alt="赤本セルフチェック" class="app-title-img" width="396" height="132">
-    </button>
+    <span class="header-mid"><span class="sr-only">赤本セルフチェック</span></span>
     <button class="icon-btn" data-action="toggle-menu" aria-label="メニュー" aria-expanded="${state.menuOpen}" aria-controls="app-menu">${ICON_MENU}</button>
     ${state.menuOpen ? `<div id="app-menu" class="menu-pop" role="menu">
       <button type="button" role="menuitem" data-action="open-about">このアプリについて</button>
@@ -2250,8 +2341,14 @@ function choiceError() {
   if (tag === 'understanding') {
     if (!a.confirm) return '確認する資料を選んでください。';
     if (!a.practice) return '確かめ方を選んでください。';
+    if (a.practice === 'minite' && !a.knowGoal) return 'ミニテ集の目標点を選んでください。';
   }
-  if (tag === 'knowledge' && !a.knowGoal) return 'ミニテ集の目標点を選んでください。';
+  if (tag === 'knowledge') {
+    if (!a.confirm) return '確認する資料を選んでください。';
+    if (!a.practice) return '練習に使う教材を選んでください。';
+    if (a.practice === 'minite' && !a.knowGoal) return 'ミニテ集の目標点を選んでください。';
+    if (a.practice === 'tangen' && !(a.stars || []).length) return '解く★を1つ以上選んでください。';
+  }
   if (tag === 'reasoning' && !a.seen) return '授業で扱ったことがあるか、選んでください。';
   if (tag === 'writing' && hasWritingMissing(a) && !a.wkind) return '知識系か考察系か、選んでください。';
   if (tag === 'writing' && hasWritingMissing(a) && !a.seen) return '似た問題に出会ったことがあるか、選んでください。';
@@ -2283,7 +2380,7 @@ function showResult() {
   const d = decide(a);
   state.result = { d, prev, prevSame: mine.length > 0, prevProm };
   state.pickedTag = d.primary; state.confettiShown = false;
-  a.seen = ''; a.wkind = ''; a.knowGoal = ''; a.confirm = ''; a.practice = ''; a.units = []; a.good = ''; a.next = ''; a.nhPick = '';
+  a.seen = ''; a.wkind = ''; a.knowGoal = ''; a.confirm = ''; a.practice = ''; a.units = []; a.stars = []; a.good = ''; a.next = ''; a.nhPick = '';
   state.reviewOpt = '';
   /* 出し直しのとき、前の結果につくった約束は消す(結果が変わるため) */
   if (state.savedPromise) {
@@ -2349,6 +2446,7 @@ const onClick = async (e) => {
 
   if (act === 'welcome-ok') {
     markWelcomed();
+    askPersist();
     state.step = 'intro';
     try { history.replaceState({ step: 'intro', univId: '' }, '', location.pathname + location.search); } catch (err) { /* noop */ }
     render({ focusTop: true });
@@ -2356,6 +2454,9 @@ const onClick = async (e) => {
     const input = app.querySelector('[data-text="sched"]');
     if (input) { input.value = btn.dataset.name; state.a.sched = btn.dataset.name; input.focus(); }
     hideSchedSuggest();
+  } else if (act === 'close-a2hs') {
+    try { localStorage.setItem(KEY_A2HS, '1'); } catch (err) { /* noop */ }
+    render();
   } else if (act === 'close-teacher') {
     state.teacherClosed = true;
     render();
@@ -2590,7 +2691,7 @@ const onClick = async (e) => {
   } else if (act === 'clear') {
     if (window.confirm('この端末に保存した、大学・記録・約束を、全部消します。よろしいですか?')) {
       /* 共有端末で次の人が使えるように、最初の案内画面も出し直す */
-      [KEY_UNIVS, KEY_RECORDS, KEY_PROMISES, KEY_SCHEDNAMES, KEY_MANUAL, KEY_WELCOME, KEY_OLD, KEY_CARDS].forEach(clearKey);
+      [KEY_UNIVS, KEY_RECORDS, KEY_PROMISES, KEY_SCHEDNAMES, KEY_MANUAL, KEY_WELCOME, KEY_A2HS, KEY_OLD, KEY_CARDS].forEach(clearKey);
       state.univId = ''; state.result = null; state.started = false;
       state.saved = false; state.savedId = ''; state.savedPromise = null; state.followupMsg = '';
       goto('welcome');
@@ -2598,15 +2699,6 @@ const onClick = async (e) => {
   } else if (act === 'toggle-hold') {
     state.holdOpen = !state.holdOpen;
     state.repromise = null; state.repromiseError = '';
-    render();
-  } else if (act === 'add-unit') {
-    if (!state.a.units) state.a.units = [];
-    if (state.a.units.length < MAX_UNITS) state.a.units.push('');
-    render({ focusSelector: `[data-unit="${state.a.units.length - 1}"]` });
-  } else if (act === 'del-unit') {
-    state.a.units.splice(Number(btn.dataset.i), 1);
-    state.promiseError = '';
-    refreshPromiseText();
     render();
   } else if (act === 'toggle-ai') {
     state.showAi = !state.showAi;
@@ -2824,7 +2916,7 @@ app.addEventListener('change', (e) => {
     render({ focusSelector: radioSel(t) });
   } else if (t.matches('[data-pick]')) {
     state.pickedTag = t.value;
-    state.a.seen = ''; state.a.wkind = ''; state.a.knowGoal = ''; state.a.confirm = ''; state.a.practice = ''; state.a.units = [];
+    state.a.seen = ''; state.a.wkind = ''; state.a.knowGoal = ''; state.a.confirm = ''; state.a.practice = ''; state.a.units = []; state.a.stars = [];
     /* ひな形を選んでいたら、別の課題の文が残らないように消す(自分で書いた文は残す) */
     if (state.a.nhPick && state.a.nhPick !== NH_OWN) state.a.next = '';
     state.a.nhPick = '';
@@ -2844,10 +2936,24 @@ app.addEventListener('change', (e) => {
     refreshPromiseText();
     render({ focusSelector: t.value === NH_OWN ? '[data-text="next"]' : radioSel(t) });
   } else if (t.matches('[data-unit]')) {
-    state.a.units[Number(t.dataset.unit)] = t.value;
+    /* 単元: タップで選ぶ・もう一度タップで外す(3つまで) */
+    const cur = (state.a.units || []).filter(Boolean);
+    const i = cur.indexOf(t.value);
+    if (t.checked && i < 0 && cur.length < MAX_UNITS) cur.push(t.value);
+    else if (!t.checked && i >= 0) cur.splice(i, 1);
+    state.a.units = cur;
     state.promiseError = '';
     refreshPromiseText();
-    render({ focusSelector: `[data-unit="${t.dataset.unit}"]` });
+    render({ focusSelector: radioSel(t) });
+  } else if (t.matches('[data-star]')) {
+    const cur = state.a.stars || [];
+    const i = cur.indexOf(t.value);
+    if (t.checked && i < 0) cur.push(t.value);
+    else if (!t.checked && i >= 0) cur.splice(i, 1);
+    state.a.stars = cur;
+    state.promiseError = '';
+    refreshPromiseText();
+    render({ focusSelector: radioSel(t) });
   } else if (t.matches('[data-ch]')) {
     state.a[t.dataset.ch] = t.value;
     state.promiseError = '';
@@ -2914,6 +3020,7 @@ app.addEventListener('input', (e) => {
   }
 });
 
+if (isWelcomed()) askPersist();
 state.step = isWelcomed() ? 'intro' : 'welcome';
 try { history.replaceState({ step: state.step, univId: '' }, '', location.pathname + location.search); } catch (e) { /* noop */ }
 render();
