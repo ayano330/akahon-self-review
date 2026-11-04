@@ -420,7 +420,7 @@ const PRACTICE_BY_REASON = {
   how: [
     { id: 'minite', label: 'ミニテ集' },
     { id: 'exprint', label: '授業で扱った演習教材' },
-    { id: 'tangen_done', label: '単元別問題集' },
+    { id: 'tangen13', label: '単元別問題集★1〜3' },
     { id: 'oral', label: '口頭説明' }
   ]
 };
@@ -430,7 +430,13 @@ const KNOW_PRACTICE = [
   { id: 'tangen', label: '単元別問題集' }
 ];
 const STAR_OPTS = ['1', '2', '3', '4', '5'];
-const STAR_HINT = '★4・★5は、★3までが完璧になった人だけ選んでください';
+const STAR_HINT = '★4・★5は、★3までが完璧になった人が、上位校を志望する場合に選んでください';
+/* 知識不足: 単元別問題集は、ミニテ集で8割以上取れている人だけ選べる */
+const MINITE_OK_OPTS = [
+  { id: 'yes', label: 'はい' },
+  { id: 'no', label: 'いいえ' }
+];
+const knowPracticeOptions = (a) => (a.miniteOk === 'yes' ? KNOW_PRACTICE : KNOW_PRACTICE.slice(0, 1));
 const starsLabel = (a) => (a.stars || []).slice().sort().map((s) => '★' + s).join('・');
 const KNOW_GOALS = [
   { id: '80', label: '8割以上' },
@@ -751,8 +757,8 @@ function actionView(tag, a) {
       if (goal) steps[2] = '目標(' + goal + ')に届いたか確かめる';
     } else if (a.practice === 'tangen') {
       title = '覚えていなかった知識を確認し、単元別問題集で確かめよう';
-      steps[1] = '少し時間を空けて、' + upre + '単元別問題集の' + (starsLabel(a) || '★') + 'を解く';
-      steps[2] = '解いた問題を正解できたか確かめる';
+      steps[1] = upre + '単元別問題集の' + (starsLabel(a) ? starsLabel(a) + 'を' : '問題を') + '解く';
+      steps[2] = '間違えた問題は解き直して、正解できたか確かめる';
     }
   }
   if (tag === 'understanding' && a.practice !== 'minite' && understandingReasons(a).indexOf('how') >= 0 && optionLabel(practiceOptions(a), a.practice) !== '口頭説明') {
@@ -769,8 +775,9 @@ function actionView(tag, a) {
   }
   return {
     title, short: act.short, why: act.why, steps,
-    goal: usesMinite(tag, a) && a.knowGoal ? ('目標(' + optionLabel(KNOW_GOALS, a.knowGoal) + ')を達成できた')
-      : (tag === 'knowledge' && a.practice === 'tangen' && (a.stars || []).length) ? ('選んだ' + starsLabel(a) + 'の問題を正解できた')
+    goal: usesMinite(tag, a) && a.knowGoal
+      ? ('目標(' + optionLabel(KNOW_GOALS, a.knowGoal) + ')を達成' + (tag === 'understanding' ? 'し、解き方も説明できた' : 'できた'))
+      : (tag === 'knowledge' && a.practice === 'tangen') ? ('選んだ' + (starsLabel(a) || '★') + 'の問題を、解き直しも含めて正解できた')
       : act.goal
   };
 }
@@ -1138,7 +1145,7 @@ const STEPS = ['basic', 'time', 'misses'];
 const newAnswers = () => ({
   round: '', year: '', sched: '', score: '', full: '',
   time: '', misses: [],
-  good: '', next: '', nhPick: '', seen: '', wkind: '', knowGoal: '', confirm: '', practice: '', units: [], stars: []
+  good: '', next: '', nhPick: '', seen: '', wkind: '', knowGoal: '', confirm: '', miniteOk: '', practice: '', units: [], stars: []
 });
 const newMiss = () => ({ label: '', form: '', reason: '', loss: '' });
 const newWhenState = (extra) => Object.assign({ whenOpt: '', date: '', time: '', text: '', base: '', edited: false }, extra);
@@ -1896,9 +1903,15 @@ function extraChoiceHtml(tag, a) {
         ${radios('confirm', CONFIRM_OPTS, a.confirm, 'data-ch="confirm"', 'col')}
       </fieldset>
       <fieldset>
-        <legend>どの教材で練習しますか?</legend>
-        ${radios('practice', KNOW_PRACTICE, a.practice, 'data-ch="practice"', 'col')}
+        <legend>ミニテ集で8割以上取れていますか?</legend>
+        ${radios('miniteOk', MINITE_OK_OPTS, a.miniteOk, 'data-ch="miniteOk"')}
       </fieldset>
+      ${a.miniteOk ? `
+      <fieldset>
+        <legend>どの教材で練習しますか?</legend>
+        ${a.miniteOk === 'no' ? '<p class="hint-small">まずは、ミニテ集で8割以上を目指しましょう</p>' : ''}
+        ${radios('practice', knowPracticeOptions(a), a.practice, 'data-ch="practice"', 'col')}
+      </fieldset>` : ''}
       ${usesMinite(tag, a) ? goalFieldsetHtml(a) : ''}
       ${a.practice === 'tangen' ? starsHtml(a) : ''}
       ${unitsApply(tag, a) ? unitsHtml(a) : ''}`;
@@ -2363,7 +2376,9 @@ function choiceError() {
   }
   if (tag === 'knowledge') {
     if (!a.confirm) return '確認する資料を選んでください。';
+    if (!a.miniteOk) return 'ミニテ集で8割以上取れているか、選んでください。';
     if (!a.practice) return '練習に使う教材を選んでください。';
+    if (a.practice === 'tangen' && a.miniteOk !== 'yes') return '単元別問題集は、ミニテ集で8割以上取れている人が選べます。';
     if (a.practice === 'minite' && !a.knowGoal) return 'ミニテ集の目標点を選んでください。';
     if (a.practice === 'tangen' && !(a.stars || []).length) return '解く★を1つ以上選んでください。';
   }
@@ -2398,7 +2413,7 @@ function showResult() {
   const d = decide(a);
   state.result = { d, prev, prevSame: mine.length > 0, prevProm };
   state.pickedTag = d.primary; state.confettiShown = false;
-  a.seen = ''; a.wkind = ''; a.knowGoal = ''; a.confirm = ''; a.practice = ''; a.units = []; a.stars = []; a.good = ''; a.next = ''; a.nhPick = '';
+  a.seen = ''; a.wkind = ''; a.knowGoal = ''; a.confirm = ''; a.miniteOk = ''; a.practice = ''; a.units = []; a.stars = []; a.good = ''; a.next = ''; a.nhPick = '';
   state.reviewOpt = '';
   /* 出し直しのとき、前の結果につくった約束は消す(結果が変わるため) */
   if (state.savedPromise) {
@@ -2934,7 +2949,7 @@ app.addEventListener('change', (e) => {
     render({ focusSelector: radioSel(t) });
   } else if (t.matches('[data-pick]')) {
     state.pickedTag = t.value;
-    state.a.seen = ''; state.a.wkind = ''; state.a.knowGoal = ''; state.a.confirm = '';     state.a.practice = ''; state.a.units = []; state.a.stars = [];
+    state.a.seen = ''; state.a.wkind = ''; state.a.knowGoal = ''; state.a.confirm = ''; state.a.miniteOk = ''; state.a.practice = ''; state.a.units = []; state.a.stars = [];
     /* 別の課題の約束文が残らないように、書き換えた文も作り直す(約束はまだ保存していないので、ここで作り直せる) */
     state.promise.edited = false;
     /* ひな形を選んでいたら、別の課題の文が残らないように消す(自分で書いた文は残す) */
@@ -2976,6 +2991,8 @@ app.addEventListener('change', (e) => {
     render({ focusSelector: radioSel(t) });
   } else if (t.matches('[data-ch]')) {
     state.a[t.dataset.ch] = t.value;
+    /* ミニテ集で8割以上取れていないなら、単元別問題集は選べない(すでに選んでいたら外す) */
+    if (t.dataset.ch === 'miniteOk' && t.value !== 'yes' && state.a.practice === 'tangen') { state.a.practice = ''; state.a.stars = []; }
     state.promiseError = '';
     refreshPromiseText();
     render({ focusSelector: radioSel(t) });
