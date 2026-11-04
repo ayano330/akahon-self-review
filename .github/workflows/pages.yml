@@ -30,7 +30,7 @@ jobs:
           cp index.html v2.html v3.html manifest.webmanifest _site/
           cp akahon-icon-32.png akahon-icon-180.png akahon-icon-512.png akahon-header-bg.jpg _site/
           # 先生の画像を足すときは、掲載許可を得てから、ここにも1行足す
-          cp teachers/masuoka.png _site/teachers/
+          cp teachers/masuoka.png teachers/minami.png _site/teachers/
       - uses: actions/upload-pages-artifact@v3
         with:
           path: _site
