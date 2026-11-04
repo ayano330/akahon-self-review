@@ -23,8 +23,16 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: actions/configure-pages@v5
+      # 公開するのは、アプリの表示に必要なファイルだけ(docs/・元画像・使わない先生の画像は公開URLに出さない)
+      - name: Stage public files
+        run: |
+          mkdir -p _site/teachers
+          cp index.html v2.html v3.html manifest.webmanifest _site/
+          cp akahon-icon-32.png akahon-icon-180.png akahon-icon-512.png akahon-header-bg.jpg _site/
+          # 先生の画像を足すときは、掲載許可を得てから、ここにも1行足す
+          cp teachers/masuoka.png _site/teachers/
       - uses: actions/upload-pages-artifact@v3
         with:
-          path: .
+          path: _site
       - id: deployment
         uses: actions/deploy-pages@v4

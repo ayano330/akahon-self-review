@@ -72,8 +72,8 @@ legend { font-weight: 700; padding: 0; margin-bottom: 8px; }
 .option { position: relative; }
 .option input { position: absolute; opacity: 0; inset: 0; width: 100%; height: 100%; margin: 0; cursor: pointer; }
 .option span { display: block; padding: 10px 14px; min-height: 44px; border: 2px solid var(--border); border-radius: var(--radius); background: var(--card); }
-.option:has(input:checked) span { border-color: var(--primary); background: var(--primary-soft); font-weight: 700; }
-.option:has(input:focus-visible) span { outline: 3px solid var(--primary); outline-offset: 2px; }
+.option input:checked + span { border-color: var(--primary); background: var(--primary-soft); font-weight: 700; }
+.option input:focus-visible + span { outline: 3px solid var(--primary); outline-offset: 2px; }
 .options.col { flex-direction: column; }
 .options.col .option span { width: 100%; }
 .options.fit { flex-wrap: nowrap; gap: 6px; }
@@ -93,9 +93,10 @@ input[type="number"], input[type="text"], input[type="date"], input[type="time"]
   background: var(--card);
   color: var(--fg);
 }
+html { scroll-padding-top: 88px; scroll-padding-bottom: 96px; }
 .unit-group-label { font-size: 0.85rem; font-weight: 700; color: var(--muted); margin: 4px 0 -2px; }
-.option:has(input:disabled) span { opacity: 0.4; }
-.option:has(input:disabled) input { cursor: not-allowed; }
+.option input:disabled + span { opacity: 0.4; }
+.option input:disabled { cursor: not-allowed; }
 .hint-small { font-size: 0.85rem; color: var(--muted); }
 textarea { min-height: 120px; resize: vertical; }
 textarea.short { min-height: 88px; }
@@ -204,6 +205,7 @@ table.data td.act { width: 44px; text-align: right; padding: 2px 4px; }
     repeating-linear-gradient(180deg, transparent 0, transparent calc(2rem - 1px), #b3d1ea calc(2rem - 1px), #b3d1ea 2rem);
   clip-path: polygon(0 0, 100% 0, 100% calc(100% - 6px), 96% calc(100% - 1px), 92% calc(100% - 7px), 88% 100%, 84% calc(100% - 5px), 80% calc(100% - 1px), 76% calc(100% - 6px), 72% 100%, 68% calc(100% - 4px), 64% calc(100% - 7px), 60% calc(100% - 1px), 56% calc(100% - 5px), 52% 100%, 48% calc(100% - 6px), 44% calc(100% - 2px), 40% calc(100% - 7px), 36% 100%, 32% calc(100% - 4px), 28% calc(100% - 7px), 24% calc(100% - 1px), 20% calc(100% - 5px), 16% 100%, 12% calc(100% - 6px), 8% calc(100% - 2px), 4% calc(100% - 6px), 0 100%);
 }
+.scrap.stamped { padding-bottom: 2rem; }
 .scrap p { margin: 0; line-height: 2rem; overflow-wrap: anywhere; }
 .scrap-head { display: flex; align-items: center; }
 .scrap-head span { display: inline-block; line-height: 1.5rem; padding: 0 14px; font-size: 1.05rem; color: #c62828; border: 2px solid #c62828; border-radius: 52% 48% 55% 45% / 55% 45% 55% 45%; transform: rotate(-3deg); }
@@ -287,6 +289,8 @@ body { overscroll-behavior-y: contain; }
 #ptr.spin .ptr-spin { animation: ptr-rot 0.7s linear infinite; }
 @keyframes ptr-rot { to { transform: rotate(360deg); } }
 .a2hs p { margin-bottom: 8px; font-weight: 700; }
+h3 { font-size: 1rem; margin: 0; }
+.install-steps { margin-top: 12px; }
 /* 先生のひとこと(ホーム) */
 .teacher { display: flex; align-items: flex-end; gap: 6px; }
 .teacher-img { width: 112px; height: 112px; flex: none; object-fit: contain; }
@@ -1428,7 +1432,7 @@ function scrapHtml(p, opts) {
   const pop = opts && opts.animate ? ' pop' : '';
   return `
     <div class="scrap-wrap"${opts && opts.id ? ` id="${opts.id}"` : ''}>
-      <div class="scrap">
+      <div class="scrap${done || partial ? ' stamped' : ''}">
         <p class="scrap-head"><span>やくそく</span></p>
         <p class="scrap-when">${esc(whenLabel(p))}</p>
         <p class="scrap-body">${esc(p.text)}</p>
@@ -1579,7 +1583,7 @@ function renderIntro() {
         <p>記録を守るため、ホーム画面にWebアプリとして追加して使うことをおすすめします。</p>
         <div class="row">
           <button class="btn btn-sm" data-action="open-about">やり方を見る</button>
-          <button class="btn btn-quiet btn-sm" data-action="close-a2hs">今は表示しない</button>
+          <button class="btn btn-quiet btn-sm" data-action="close-a2hs">もう表示しない</button>
         </div>
       </section>`}
     </div>`;
@@ -1593,15 +1597,16 @@ const SAFETY_POINTS = [
 ];
 const safetyList = () => `<ul class="plain">${SAFETY_POINTS.map((s) => `<li>${esc(s)}</li>`).join('')}</ul>`;
 const INSTALL_NOTES = [
-  'スマホの空き容量が少ないときや、長いあいだ開いていないときに、保存した記録が消えてしまうことがあります。',
-  '記録はこの端末の中にだけあるので、機種変更や、ブラウザのデータ消去でも消えます。',
-  'データを守るため、ホーム画面に「Webアプリ」として追加して使うことをおすすめします。ときどき開くと、さらに消えにくくなります。'
+  'iPhone の Safari では、1週間ほど開かないと、保存した記録が消えることがあります。スマホの空き容量が少ないときも、消えることがあります。',
+  '記録はこの端末の中にだけあります。機種変更や、ブラウザのデータ消去でも消え、先生にも復元できません。消えたら、もう一度入力が必要です。',
+  'データを守るため、ホーム画面に「Webアプリ」として追加して使うことをおすすめします。iPhone ではこの自動の削除の対象外になり、Android でも消えにくくなります。',
+  'ホーム画面のアプリは、Safari や Chrome とは別の保存場所です。すでに記録がある人は、追加しても引き継がれません。追加したあとから使い始めてください。'
 ];
 const INSTALL_STEPS = [
-  'iPhone: Safari で開いて、画面下の共有ボタン(四角から上向きの矢印)をおし、「ホーム画面に追加」をえらぶ。',
-  'Android: Chrome の右上のメニュー(縦の3つの点)をおし、「ホーム画面に追加」または「アプリをインストール」をえらぶ。'
+  'iPhone: Safari で開いて、画面下の共有ボタン(四角から上向きの矢印)、または、アドレス欄の「…」から「共有」をおし、「ホーム画面に追加」をえらぶ。「Webアプリとして開く」が出たら、オンのままにする。',
+  'Android: Chrome の右上のメニュー(縦の3つの点)をおし、「ホーム画面に追加」または「アプリをインストール」をえらぶ。表示がちがうときは、先生に聞く。'
 ];
-const installHtml = () => `<ul class="plain">${INSTALL_NOTES.map((s) => `<li>${esc(s)}</li>`).join('')}</ul><p><strong>追加のしかた</strong></p><ul class="plain">${INSTALL_STEPS.map((s) => `<li>${esc(s)}</li>`).join('')}</ul>`;
+const installHtml = () => `<ul class="plain">${INSTALL_NOTES.map((s) => `<li>${esc(s)}</li>`).join('')}</ul><div class="stack-sm install-steps"><h3>追加のしかた</h3><ul class="plain">${INSTALL_STEPS.map((s) => `<li>${esc(s)}</li>`).join('')}</ul></div>`;
 function renderWelcome() {
   return `
     <div class="stack">
@@ -1851,6 +1856,7 @@ function unitsHtml(a) {
   return `
       <fieldset>
         <legend>単元(任意・${MAX_UNITS}つまで)</legend>
+        ${full ? '<p class="hint-small">3つ選びました。変えるときは、選んだものをもう一度タップして外します。</p>' : ''}
         <div class="stack-sm">${groups}</div>
       </fieldset>`;
 }
@@ -1963,7 +1969,7 @@ function textFieldHtml(st, target) {
       <textarea class="short" maxlength="200" data-pr="text" data-prt="${target}">${esc(st.text)}</textarea>
     </label>
     <div class="row row-end">${target === 'promise'
-      ? `<button class="btn btn-quiet btn-sm" data-action="clear-text" data-prt="${target}">文を消して自分で書く</button>`
+      ? `<button class="btn btn-quiet btn-sm" data-action="reset-text" data-prt="${target}">元の文にもどす</button><button class="btn btn-quiet btn-sm" data-action="clear-text" data-prt="${target}">文を消して自分で書く</button>`
       : `<button class="btn btn-quiet btn-sm" data-action="reset-text" data-prt="${target}">元の文にもどす</button>`}</div>`;
 }
 
@@ -2013,6 +2019,11 @@ function promiseHtml(d, a) {
     </section>`;
 }
 
+/* 約束を保存したあとは、課題・教材・単元などを変えられなくする(変えると、画面と保存した約束がずれるため) */
+function lockedHtml(inner) {
+  if (!state.savedPromise || !String(inner).trim()) return inner;
+  return `<fieldset class="stack" disabled>${inner}</fieldset><p class="hint-small">約束を保存したので、ここは変えられません。</p>`;
+}
 function renderResult() {
   const a = state.a;
   const { d } = state.result;
@@ -2035,12 +2046,12 @@ function renderResult() {
         <h2 id="found">正答率</h2>
         <p><span class="score-wrap"><span class="score-big">${cr}%</span>${reached ? `<span class="cele${burst ? ' pop' : ''}" aria-hidden="true">🎉</span><span class="sr-only">目標の正答率に届きました</span>${burst}` : ''}</span></p>
         <p>${esc(a.full)}問中 ${esc(a.score)}問正解</p>
-        ${tagChoiceHtml(d)}
+        ${lockedHtml(tagChoiceHtml(d))}
       </section>
 
       <section class="card stack" aria-labelledby="top">
         <h2 id="top">次の赤本までにやること</h2>
-        ${extraChoiceHtml(tag, a)}
+        ${lockedHtml(extraChoiceHtml(tag, a))}
         ${actionHtml(tag, a)}
       </section>
 
@@ -2195,7 +2206,10 @@ function renderHeader() {
   if (hidden) { el.innerHTML = ''; state.menuOpen = false; return; }
   const onHome = state.step === 'intro';
   const man = loadManual();
-  const hasData = loadUnivs().length || loadRecs().length || loadProms().length || man.goods.length || man.nexts.length;
+  /* 共有端末で次の人のために消せるよう、日程名の候補・旧版のデータ・案内を閉じた印が残っているときも「全部消す」を出す */
+  const hasKey = (k) => { try { const v = localStorage.getItem(k); return v !== null && v !== '' && v !== '[]' && v !== '{}'; } catch (e) { return false; } };
+  const hasData = loadUnivs().length || loadRecs().length || loadProms().length || man.goods.length || man.nexts.length
+    || hasKey(KEY_SCHEDNAMES) || hasKey(KEY_A2HS) || hasKey(KEY_OLD) || hasKey(KEY_CARDS);
   el.innerHTML = `<div class="app-header-in">
     ${onHome ? '<span class="header-slot" aria-hidden="true"></span>' : `<button class="icon-btn header-back" data-action="nav-back" aria-label="戻る">${ICON_BACK}</button>`}
     <span class="header-mid"><span class="sr-only">赤本セルフチェック</span></span>
@@ -2693,7 +2707,7 @@ const onClick = async (e) => {
       setStatus('up-status', 'カレンダー用のファイルを保存しました。開くと、カレンダーに入ります。');
     }
   } else if (act === 'clear') {
-    if (window.confirm('この端末に保存した、大学・記録・約束を、全部消します。よろしいですか?')) {
+    if (window.confirm('この端末に保存した、大学・記録・約束・わたしのトリセツを、全部消します。よろしいですか?')) {
       /* 共有端末で次の人が使えるように、最初の案内画面も出し直す */
       [KEY_UNIVS, KEY_RECORDS, KEY_PROMISES, KEY_SCHEDNAMES, KEY_MANUAL, KEY_WELCOME, KEY_A2HS, KEY_OLD, KEY_CARDS].forEach(clearKey);
       state.univId = ''; state.result = null; state.started = false;
@@ -2920,7 +2934,9 @@ app.addEventListener('change', (e) => {
     render({ focusSelector: radioSel(t) });
   } else if (t.matches('[data-pick]')) {
     state.pickedTag = t.value;
-    state.a.seen = ''; state.a.wkind = ''; state.a.knowGoal = ''; state.a.confirm = ''; state.a.practice = ''; state.a.units = []; state.a.stars = [];
+    state.a.seen = ''; state.a.wkind = ''; state.a.knowGoal = ''; state.a.confirm = '';     state.a.practice = ''; state.a.units = []; state.a.stars = [];
+    /* 別の課題の約束文が残らないように、書き換えた文も作り直す(約束はまだ保存していないので、ここで作り直せる) */
+    state.promise.edited = false;
     /* ひな形を選んでいたら、別の課題の文が残らないように消す(自分で書いた文は残す) */
     if (state.a.nhPick && state.a.nhPick !== NH_OWN) state.a.next = '';
     state.a.nhPick = '';

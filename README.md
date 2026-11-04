@@ -6,7 +6,10 @@
 |---|---|
 | `v3.html` | **現行版**(配布用 URL は基本これ) |
 | `v2.html` / `index.html` | 比較用の旧版 |
-| `akahon-icon-*.png` / `akahon-title-header.png` | ホーム画面アイコンとヘッダー用タイトル |
+| `akahon-icon-*.png` / `akahon-header-bg.jpg` | ホーム画面アイコンとヘッダーの背景画像 |
+| `teachers/` | ホームに出す先生のミニキャラ画像(掲載許可を得たものだけ) |
+
+公開URLに出るのは、`.github/workflows/pages.yml` で選んだファイルだけです(`docs/`・元画像は出ません)。
 
 ## 公開 URL(GitHub Pages)
 
