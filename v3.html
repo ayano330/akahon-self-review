@@ -288,7 +288,7 @@ body { overscroll-behavior-y: contain; }
 .ptr-spin { width: 20px; height: 20px; border: 3px solid var(--border); border-top-color: var(--primary); border-radius: 50%; }
 #ptr.spin .ptr-spin { animation: ptr-rot 0.7s linear infinite; }
 @keyframes ptr-rot { to { transform: rotate(360deg); } }
-.a2hs p { margin-bottom: 8px; font-weight: 700; }
+.a2hs p, .campus-ask p { margin-bottom: 8px; font-weight: 700; }
 h3 { font-size: 1rem; margin: 0; }
 .install-steps { margin-top: 12px; }
 /* 先生のひとこと(ホーム) */
@@ -331,6 +331,7 @@ const KEY_WELCOME = 'akahon-self-review:v3:welcomed';
 const KEY_SCHEDNAMES = 'akahon-self-review:v3:schednames';
 const KEY_MANUAL = 'akahon-self-review:v3:manual';
 const KEY_A2HS = 'akahon-self-review:v3:a2hs';
+const KEY_CAMPUS = 'akahon-self-review:v3:campus';
 /* v1・v2 の保存データ、削除した用語カードのデータ(v3 は読み込まない。「全部消す」のときだけ消す) */
 const KEY_OLD = 'akahon-self-review:v1';
 const KEY_CARDS = 'akahon-self-review:cards:v1';
@@ -1190,6 +1191,8 @@ const state = {
   savedReview: null,
   confettiShown: false,
   menuOpen: false,
+  campusPick: '',
+  campusError: '',
   yearChecked: false,
   basicTried: false,
   univEdit: null,
@@ -1321,23 +1324,60 @@ function legendHtml(series) {
 
 /* アイコン(文字を使わないので、aria-label はボタン側につける) */
 const ICON_X = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12"/><path d="M18 6L6 18"/></svg>';
-/* 先生のひとこと。ホームを開くたびに、先生と一言をランダムに1つ選ぶ。
-   先生を足すときは、ここに { name, img, says:[…] } を1行足す(画像は teachers/ に置く)。
-   says が空の先生は出さない。 */
+/* 先生のひとこと。ホームを開くたびに、受講校舎の担当の先生のうち1人と、その先生の一言を1つ、ランダムに選ぶ。
+   元の表は teachers-comments.xlsx(「先生一覧」「校舎一覧」)。
+   先生を足すときは、TEACHERS に { name, img, says:[…] } を1行足し、担当する校舎の teachers に名前を足す(画像は teachers/ に置く)。
+   says が空の先生は出さない。img が空なら、顔なしで吹き出しだけ出す。
+   画像は、先生の掲載許可を得てから置く(.github/workflows/pages.yml にも1行足す)。 */
 const TEACHERS = [
+  { name: '高瀬先生', img: 'teachers/takase.png', says: [] },
+  { name: '内野先生', img: '', says: [] },
   { name: '増岡先生', img: 'teachers/masuoka.png', says: [
     '昨日できなかった問題を，今日できるようにしよう。積み重ねしか勝たん！',
     '次に繋げれば，それは失敗じゃなくて経験。たくさん演習，たくさん経験！',
   ] },
-  /* 増田先生の画像は、いまは増岡先生と同じ(先生の了承のうえ。ほかの先生の掲載許可が出るまで、デモ用に自分のミニキャラだけ使う) */
-  { name: '増田先生', img: 'teachers/masuoka.png', says: [
-    '人事を尽くして天命を待つ！',
-    'MMノートで弱点克服！',
+  { name: '渡邊先生', img: '', says: [] },
+  /* 南先生の一言は、表の仮の文のまま(大和校で2人出るかの確認用)。本物が届いたら差し替える。画像は掲載許可待ちで、顔なし */
+  { name: '南先生', img: '', says: [
+    'ここにセリフを追加',
+    'ここにセリフを追加',
   ] },
+  { name: '篠田先生', img: '', says: [] }
 ];
+/* 生物を受講している校舎と、その校舎で授業をしている先生(1〜3名)。ボタンはこの順に並ぶ */
+const CAMPUSES = [
+  { name: '藤沢校', teachers: ['高瀬先生', '増岡先生', '篠田先生'] },
+  { name: '大和校', teachers: ['増岡先生', '南先生'] },
+  { name: '茅ケ崎校', teachers: ['篠田先生'] },
+  { name: '海老名校', teachers: ['篠田先生'] },
+  { name: '平塚校', teachers: ['内野先生', '渡邊先生'] },
+  { name: '小田原校', teachers: ['内野先生'] },
+  { name: '秦野校', teachers: ['南先生'] },
+  { name: '相模原校', teachers: ['南先生', '篠田先生'] },
+  { name: '厚木校', teachers: ['増岡先生'] },
+  { name: '横浜校', teachers: ['増岡先生', '内野先生'] },
+  { name: '大船校', teachers: ['内野先生', '渡邊先生'] },
+  { name: '相模大野校', teachers: ['高瀬先生'] },
+  { name: '戸塚校', teachers: ['渡邊先生', '篠田先生'] },
+  { name: 'センター南校', teachers: ['増岡先生', '渡邊先生'] },
+  { name: '横須賀校', teachers: ['渡邊先生'] }
+];
+/* 受講校舎: 校舎名 / CAMPUS_NONE(選ばない) / ''(まだ選んでいない)。表にない校舎名は、未選択として扱う */
+const CAMPUS_NONE = '-';
+function loadCampus() {
+  try {
+    const v = localStorage.getItem(KEY_CAMPUS);
+    if (v === CAMPUS_NONE) return v;
+    return CAMPUSES.some((c) => c.name === v) ? v : '';
+  } catch (e) { return ''; }
+}
+function saveCampus(v) {
+  try { localStorage.setItem(KEY_CAMPUS, v); return true; } catch (e) { return false; }
+}
 let lastTeacherName = '';
-function pickTeacher() {
-  const pool = TEACHERS.filter((t) => t.says.length);
+function pickTeacher(campusName) {
+  const c = CAMPUSES.find((x) => x.name === campusName);
+  const pool = c ? TEACHERS.filter((t) => c.teachers.includes(t.name) && t.says.length) : [];
   if (!pool.length) return null;
   const others = pool.filter((t) => t.name !== lastTeacherName);
   const list = others.length ? others : pool;
@@ -1345,14 +1385,23 @@ function pickTeacher() {
   lastTeacherName = t.name;
   return { name: t.name, img: t.img, say: t.says[Math.floor(Math.random() * t.says.length)] };
 }
+function campusAskHtml() {
+  return `
+      <section class="notice campus-ask" aria-label="受講校舎の選択">
+        <p>生物を受講している校舎を選ぶと、担当の先生のひとことが出ます。</p>
+        <div class="row"><button type="button" class="btn btn-sm" data-action="open-campus">校舎を選ぶ</button></div>
+      </section>`;
+}
 function teacherHtml() {
-  if (state.teacherClosed) return '';
-  if (!state.teacherPick) state.teacherPick = pickTeacher();
+  const campus = loadCampus();
+  if (!campus) return campusAskHtml();
+  if (campus === CAMPUS_NONE || state.teacherClosed) return '';
+  if (!state.teacherPick) state.teacherPick = pickTeacher(campus);
   const p = state.teacherPick;
   if (!p) return '';
   return `
       <section class="teacher" aria-label="${esc(p.name)}からのひとこと">
-        <img class="teacher-img" src="${esc(p.img)}" alt="" width="112" height="112">
+        ${p.img ? `<img class="teacher-img" src="${esc(p.img)}" alt="" width="112" height="112">` : ''}
         <div class="teacher-bubble">
           <p class="teacher-text">${esc(p.say)}</p>
           <p class="teacher-name">${esc(p.name)}</p>
@@ -1635,6 +1684,25 @@ function renderAbout() {
       <h2>記録が消えることがあります</h2>
       ${installHtml()}
       <p class="muted">この提案は目安です。迷ったときは、先生に相談してください。</p>
+    </div>`;
+}
+
+/* --- 受講校舎(メニューから、いつでも変えられる)。選んだ校舎の先生のひとことが、ホームに出る --- */
+function renderCampus() {
+  const opts = CAMPUSES.map((c) => ({ id: c.name, label: c.name })).concat([{ id: CAMPUS_NONE, label: '選ばない(先生のひとことを出さない)' }]);
+  return `
+    <div class="stack">
+      <h1 tabindex="-1">受講校舎</h1>
+      <p>生物を受講している校舎を選んでください。選んだ校舎の先生のひとことが、ホームに出ます。</p>
+      <fieldset>
+        <legend class="sr-only">受講している校舎</legend>
+        ${radios('campus', opts, state.campusPick, 'data-campus')}
+      </fieldset>
+      ${errorHtml(state.campusError)}
+      <div class="row-between">
+        <button class="btn btn-quiet" data-action="home">もどる</button>
+        <button class="btn btn-primary" data-action="save-campus">決める</button>
+      </div>
     </div>`;
 }
 
@@ -2149,7 +2217,7 @@ function heldItemsHtml(held, recs, univs) {
 }
 
 const VIEWS = {
-  welcome: renderWelcome, about: renderAbout, intro: renderIntro, addUniv: renderAddUniv, univ: renderUniv,
+  welcome: renderWelcome, about: renderAbout, campus: renderCampus, intro: renderIntro, addUniv: renderAddUniv, univ: renderUniv,
   basic: renderBasic, time: renderTime,
   misses: renderMisses, result: renderResult, manual: renderManual,
   hold: renderHold, promises: renderPromises
@@ -2222,12 +2290,13 @@ function renderHeader() {
   /* 共有端末で次の人のために消せるよう、日程名の候補・旧版のデータ・案内を閉じた印が残っているときも「全部消す」を出す */
   const hasKey = (k) => { try { const v = localStorage.getItem(k); return v !== null && v !== '' && v !== '[]' && v !== '{}'; } catch (e) { return false; } };
   const hasData = loadUnivs().length || loadRecs().length || loadProms().length || man.goods.length || man.nexts.length
-    || hasKey(KEY_SCHEDNAMES) || hasKey(KEY_A2HS) || hasKey(KEY_OLD) || hasKey(KEY_CARDS);
+    || hasKey(KEY_SCHEDNAMES) || hasKey(KEY_A2HS) || hasKey(KEY_CAMPUS) || hasKey(KEY_OLD) || hasKey(KEY_CARDS);
   el.innerHTML = `<div class="app-header-in">
     ${onHome ? '<span class="header-slot" aria-hidden="true"></span>' : `<button class="icon-btn header-back" data-action="nav-back" aria-label="戻る">${ICON_BACK}</button>`}
     <span class="header-mid"><span class="sr-only">赤本セルフチェック</span></span>
     <button class="icon-btn" data-action="toggle-menu" aria-label="メニュー" aria-expanded="${state.menuOpen}" aria-controls="app-menu">${ICON_MENU}</button>
     ${state.menuOpen ? `<div id="app-menu" class="menu-pop" role="menu">
+      <button type="button" role="menuitem" data-action="open-campus">受講校舎を変更</button>
       <button type="button" role="menuitem" data-action="open-about">このアプリについて</button>
       ${hasData ? '<button type="button" role="menuitem" class="danger" data-action="clear">保存したものを全部消す</button>' : ''}
     </div>` : ''}
@@ -2724,7 +2793,7 @@ const onClick = async (e) => {
   } else if (act === 'clear') {
     if (window.confirm('この端末に保存した、大学・記録・約束・わたしのトリセツを、全部消します。よろしいですか?')) {
       /* 共有端末で次の人が使えるように、最初の案内画面も出し直す */
-      [KEY_UNIVS, KEY_RECORDS, KEY_PROMISES, KEY_SCHEDNAMES, KEY_MANUAL, KEY_WELCOME, KEY_A2HS, KEY_OLD, KEY_CARDS].forEach(clearKey);
+      [KEY_UNIVS, KEY_RECORDS, KEY_PROMISES, KEY_SCHEDNAMES, KEY_MANUAL, KEY_WELCOME, KEY_A2HS, KEY_CAMPUS, KEY_OLD, KEY_CARDS].forEach(clearKey);
       state.univId = ''; state.result = null; state.started = false;
       state.saved = false; state.savedId = ''; state.savedPromise = null; state.followupMsg = '';
       goto('welcome');
@@ -2856,6 +2925,14 @@ const onClick = async (e) => {
     }
   } else if (act === 'open-about') {
     goto('about');
+  } else if (act === 'open-campus') {
+    state.campusPick = loadCampus(); state.campusError = '';
+    goto('campus');
+  } else if (act === 'save-campus') {
+    if (!state.campusPick) { state.campusError = '校舎を選んでください。「選ばない」も選べます。'; render(); return; }
+    if (!saveCampus(state.campusPick)) { state.campusError = 'この端末に保存できませんでした。ブラウザの設定で、保存が禁止されていないか確かめてください。'; render(); return; }
+    state.teacherPick = null; state.campusError = '';
+    goto('intro');
   } else if (act === 'remove-manual') {
     removeManualLine(btn.dataset.kind, btn.dataset.id);
     render();
@@ -2996,6 +3073,9 @@ app.addEventListener('change', (e) => {
     state.promiseError = '';
     refreshPromiseText();
     render({ focusSelector: radioSel(t) });
+  } else if (t.matches('[data-campus]')) {
+    state.campusPick = t.value;
+    state.campusError = '';
   } else if (t.matches('[data-fu]')) {
     state.followup[t.dataset.fu] = t.value;
     state.followupError = '';
