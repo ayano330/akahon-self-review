@@ -266,8 +266,9 @@ table.data td.act { width: 44px; text-align: right; padding: 2px 4px; }
 .manual-item p { flex: 1; min-width: 0; }
 .manual-date { color: var(--muted); font-size: 0.8rem; }
 .menu-pop { position: absolute; right: 12px; top: calc(100% - 4px); z-index: 21; min-width: 228px; padding: 6px; background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: 0 8px 24px rgba(0, 0, 0, 0.14); }
-.menu-pop button { font: inherit; display: block; width: 100%; text-align: left; min-height: 44px; padding: 8px 12px; border: 0; border-radius: 8px; background: none; color: var(--fg); cursor: pointer; }
-.menu-pop button:hover { background: var(--primary-soft); }
+.menu-pop button, .menu-pop a { font: inherit; display: block; box-sizing: border-box; width: 100%; text-align: left; text-decoration: none; min-height: 44px; padding: 8px 12px; border: 0; border-radius: 8px; background: none; color: var(--fg); cursor: pointer; }
+.menu-pop button:hover, .menu-pop a:hover { background: var(--primary-soft); }
+.menu-pop a { display: flex; align-items: center; }
 .menu-pop button.danger { color: var(--danger); }
 .menu-pop button.danger:hover { background: #fdecea; }
 /* デザインのトーン(ロゴの赤・桜色に合わせる。2026-10-31 決定) */
@@ -332,6 +333,8 @@ const KEY_SCHEDNAMES = 'akahon-self-review:v3:schednames';
 const KEY_MANUAL = 'akahon-self-review:v3:manual';
 const KEY_A2HS = 'akahon-self-review:v3:a2hs';
 const KEY_CAMPUS = 'akahon-self-review:v3:campus';
+/* 不具合・要望の送信フォーム(Google フォーム。先生の個人アカウントで管理。回答はこのアプリの記録とは無関係) */
+const FEEDBACK_URL = 'https://forms.gle/PAN4HqmGAXpBxYQ3A';
 /* v1・v2 の保存データ、削除した用語カードのデータ(v3 は読み込まない。「全部消す」のときだけ消す) */
 const KEY_OLD = 'akahon-self-review:v1';
 const KEY_CARDS = 'akahon-self-review:cards:v1';
@@ -1649,6 +1652,7 @@ function renderIntro() {
 /* --- はじめて開いたときだけ出す画面 --- */
 const SAFETY_POINTS = [
   '入力した内容は、この端末のブラウザの中だけにあります。外には送られません。',
+  'メニューの「不具合・要望を送る」から、自分で送信したものだけが、先生に届きます。赤本の記録は送られません。',
   '赤本の記録は、結果が出たときに、この端末の中に自動で保存されます。約束は、自分で「約束する」を押したときだけ保存されます。',
   '普段 AI を使っている人は、診断結果をコピーして AI に相談してみるのも良いでしょう。おまけの機能です。'
 ];
@@ -2167,7 +2171,7 @@ function renderResult() {
       </section>
 
       <div class="row row-end">
-        <button class="btn btn-quiet" data-action="home" data-confirm-promise="1">保存してトップに戻る</button>
+        <button class="btn btn-primary" data-action="home" data-confirm-promise="1">保存してトップに戻る</button>
       </div>
     </div>`;
 }
@@ -2298,6 +2302,7 @@ function renderHeader() {
     <button class="icon-btn" data-action="toggle-menu" aria-label="メニュー" aria-expanded="${state.menuOpen}" aria-controls="app-menu">${ICON_MENU}</button>
     ${state.menuOpen ? `<div id="app-menu" class="menu-pop" role="menu">
       <button type="button" role="menuitem" data-action="open-campus">受講校舎を変更</button>
+      <a role="menuitem" href="${FEEDBACK_URL}" target="_blank" rel="noopener noreferrer" data-action="open-feedback">不具合・要望を送る</a>
       <button type="button" role="menuitem" data-action="open-about">このアプリについて</button>
       ${hasData ? '<button type="button" role="menuitem" class="danger" data-action="clear">保存したものを全部消す</button>' : ''}
     </div>` : ''}
@@ -2926,6 +2931,8 @@ const onClick = async (e) => {
     }
   } else if (act === 'open-about') {
     goto('about');
+  } else if (act === 'open-feedback') {
+    renderHeader(); /* リンクは、そのまま新しいタブで開く。メニューだけ閉じる */
   } else if (act === 'open-campus') {
     state.campusPick = loadCampus(); state.campusError = '';
     goto('campus');
